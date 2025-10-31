@@ -7,6 +7,7 @@ import Profile from './pages/Profile';
 import PaymentSection from './pages/Payment';
 import MyComplaints from './pages/MyComplaints';
 import ViewComplaint from './components/ViewComplaint';
+import MyMessages from './pages/MyMessage';
 const AppContent = () => {
   const location = useLocation();
 
@@ -29,7 +30,10 @@ const AppContent = () => {
           <Route path='/tenant/payment' element={<PaymentSection/>}/>
           <Route path="/tenant/my-complaints" element={<MyComplaints/>}/>
           <Route path='tenant/complaints/:id' element={<ViewComplaint/>}/>
-          <Route path='tenant/edit-complaint/:id' element={<AddComplaint isEdit={true}/>}/>
+          <Route path='/tenant/edit-complaint/:id' element={<AddComplaint isEdit={true}/>}/>
+          <Route path="/tenant/messages" element={<MyMessages />} />
+
+          {/* <Route path='/tenant/messages' element={<ViewMessages/>}/> */}
         </Routes>
       </div>
     </>

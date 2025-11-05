@@ -27,6 +27,11 @@ const Navbar = () => {
     navigate("/auth/login");
   };
 
+  // ✅ Get display name or fallback based on role
+  const displayName = user
+    ? user.name || (user.role === "admin" ? "Admin" : "Tenant")
+    : "Tenant";
+
   return (
     <nav className="bg-white shadow-md px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-50">
       {/* Logo */}
@@ -87,9 +92,7 @@ const Navbar = () => {
           className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-full hover:bg-gray-200 transition-colors"
         >
           <User className="text-gray-700" size={20} />
-          <span className="text-gray-800 font-medium">
-            {user?.name || "Tenant"}
-          </span>
+          <span className="text-gray-800 font-medium">{displayName}</span>
           <ChevronDown
             size={16}
             className={`transition-transform ${open ? "rotate-180" : ""}`}
@@ -133,6 +136,16 @@ const Navbar = () => {
             transition={{ duration: 0.2 }}
             className="absolute top-full left-0 w-full bg-white shadow-md border-t border-gray-100 flex flex-col items-start p-4 space-y-3 md:hidden z-40"
           >
+            {/* Show name or role at the top */}
+            <div className="w-full flex items-center justify-between border-b border-gray-200 pb-3 mb-2">
+              <div className="flex items-center gap-2">
+                <User size={20} className="text-blue-600" />
+                <span className="text-gray-800 font-medium text-lg">
+                  {displayName}
+                </span>
+              </div>
+            </div>
+
             <Link
               to="/"
               onClick={() => setMenuOpen(false)}

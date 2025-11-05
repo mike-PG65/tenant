@@ -30,7 +30,7 @@ const Profile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await axios.get(`${API_BASE}/${userId}`, {
+        const res = await axios.get(`${API_BASE}/auth/${userId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(res.data);

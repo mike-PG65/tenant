@@ -76,7 +76,7 @@ const Profile = () => {
 
     try {
       setUploading(true);
-      const res = await axios.patch(`${API_BASE}/idscan`, formData, {
+      const res = await axios.patch(`${API_BASE}/auth/idscan`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "multipart/form-data",

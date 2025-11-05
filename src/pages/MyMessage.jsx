@@ -7,7 +7,7 @@ const MyMessages = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const apiUrl = process.env.BASE_URL
+  const apiUrl = import.meta.env.BASE_URL
 
   useEffect(() => {
     const fetchMessages = async () => {

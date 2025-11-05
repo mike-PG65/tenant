@@ -25,7 +25,7 @@ const Profile = () => {
   const userInfo = JSON.parse(sessionStorage.getItem("user"));
   const userId = userInfo?.id;
 
-  const API_BASE = process.env.BASE_URL;
+  const API_BASE = import.meta.env.BASE_URL;
 
   useEffect(() => {
     const fetchProfile = async () => {

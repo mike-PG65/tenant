@@ -20,7 +20,7 @@ const TenantDashboard = () => {
   const user = storedUser ? JSON.parse(storedUser) : null;
   const tenantId = user?.id;
 
-  const apiUrl = process.env.BASE_URL
+  const apiUrl = import.meta.env.BASE_URL
 
   useEffect(() => {
     if (!token || !tenantId) {

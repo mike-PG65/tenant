@@ -18,7 +18,7 @@ const MyComplaints = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const apiUrl = process.env.BASE_URL
+  const apiUrl = import.meta.env.BASE_URL
 
   useEffect(() => {
     const fetchComplaints = async () => {

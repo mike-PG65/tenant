@@ -12,7 +12,7 @@ const AuthForm = () => {
   const [resetEmail, setResetEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const apiUrl = process.env.BASE_URL
+  const apiUrl = import.meta.env.BASE_URL
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });

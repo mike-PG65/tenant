@@ -55,7 +55,7 @@ const Profile = () => {
 
   const handleUpdate = async () => {
     try {
-      const res = await axios.put(`${API_BASE}/edit/${userId}`, formData, {
+      const res = await axios.put(`${API_BASE}/auth/edit/${userId}`, formData, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setUser(res.data.user);

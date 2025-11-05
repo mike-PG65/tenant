@@ -13,7 +13,7 @@ const ResetPassword = () => {
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const apiUrl = import.meta.env.BASE_URL
+  const apiUrl = import.meta.env.VITE_BASE_URL
 
   const handleReset = async (e) => {
     e.preventDefault();

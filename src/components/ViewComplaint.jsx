@@ -9,7 +9,7 @@ const ViewComplaint = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const apiUrl = import.meta.env.BASE_URL
+  const apiUrl = import.meta.env.VITE_BASE_URL
 
   useEffect(() => {
     const fetchComplaint = async () => {

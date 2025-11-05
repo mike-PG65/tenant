@@ -13,7 +13,7 @@ const ComplaintForm = ({ isEdit = false }) => {
   const navigate = useNavigate();
   const token = sessionStorage.getItem("token");
 
-  const apiUrl = import.meta.env.BASE_URL
+  const apiUrl = import.meta.env.VITE_BASE_URL
 
   useEffect(() => {
     if (isEdit && id) {

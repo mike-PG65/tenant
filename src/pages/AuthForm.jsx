@@ -12,6 +12,8 @@ const AuthForm = () => {
   const [resetEmail, setResetEmail] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const apiUrl = process.env.BASE_URL
+
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -22,7 +24,7 @@ const AuthForm = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:4050/api/auth/login", formData, {
+      const res = await axios.post(`${apiUrl}/auth/login`, formData, {
         withCredentials: true,
       });
 
@@ -46,7 +48,7 @@ const AuthForm = () => {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://localhost:4050/api/auth/forgot-password", {
+      const res = await axios.post(`${apiUrl}/auth/forgot-password`, {
         email: resetEmail,
       });
 

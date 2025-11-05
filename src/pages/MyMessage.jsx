@@ -7,10 +7,12 @@ const MyMessages = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const apiUrl = process.env.BASE_URL
+
   useEffect(() => {
     const fetchMessages = async () => {
       try {
-        const { data } = await axios.get("http://localhost:4050/api/messages/my", {
+        const { data } = await axios.get(`${apiUrl}/messages/my`, {
           headers: {
             Authorization: `Bearer ${sessionStorage.getItem("token")}`,
           },

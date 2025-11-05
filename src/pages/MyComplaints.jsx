@@ -18,10 +18,12 @@ const MyComplaints = () => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
+  const apiUrl = process.env.BASE_URL
+
   useEffect(() => {
     const fetchComplaints = async () => {
       try {
-        const { data } = await axios.get("http://localhost:4050/api/complaints/my", {
+        const { data } = await axios.get(`${apiUrl}/complaints/my`, {
           headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
         });
         setComplaints(data.complaints || []);

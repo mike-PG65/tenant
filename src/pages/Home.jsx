@@ -20,6 +20,8 @@ const TenantDashboard = () => {
   const user = storedUser ? JSON.parse(storedUser) : null;
   const tenantId = user?.id;
 
+  const apiUrl = process.env.BASE_URL
+
   useEffect(() => {
     if (!token || !tenantId) {
       setError("You must be logged in to view your dashboard.");
@@ -30,7 +32,7 @@ const TenantDashboard = () => {
     const fetchRentals = async () => {
       try {
         const res = await axios.get(
-          `http://localhost:4050/api/rental/tenant/${tenantId}`,
+          `${apiUrl}/rental/tenant/${tenantId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }

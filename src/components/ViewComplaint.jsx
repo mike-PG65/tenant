@@ -9,11 +9,13 @@ const ViewComplaint = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const apiUrl = process.env.BASE_URL
+
   useEffect(() => {
     const fetchComplaint = async () => {
       try {
         const { data } = await axios.get(
-          `http://localhost:4050/api/complaints/my/${id}`,
+          `${apiUrl}complaints/my/${id}`,
           {
             headers: {
               Authorization: `Bearer ${sessionStorage.getItem("token")}`,

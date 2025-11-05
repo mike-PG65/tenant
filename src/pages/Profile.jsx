@@ -25,7 +25,7 @@ const Profile = () => {
   const userInfo = JSON.parse(sessionStorage.getItem("user"));
   const userId = userInfo?.id;
 
-  const API_BASE = "http://localhost:4050/api/auth";
+  const API_BASE = process.env.BASE_URL;
 
   useEffect(() => {
     const fetchProfile = async () => {

@@ -13,6 +13,8 @@ const ResetPassword = () => {
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const apiUrl = process.env.BASE_URL
+
   const handleReset = async (e) => {
     e.preventDefault();
     setMessage("");
@@ -27,7 +29,7 @@ const ResetPassword = () => {
     setLoading(true);
     try {
       const res = await axios.post(
-        `http://localhost:4050/api/auth/reset-password/${token}`,
+        `${apiUrl}/auth/reset-password/${token}`,
         { password }
       );
 

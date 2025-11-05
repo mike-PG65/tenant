@@ -13,12 +13,14 @@ const ComplaintForm = ({ isEdit = false }) => {
   const navigate = useNavigate();
   const token = sessionStorage.getItem("token");
 
+  const apiUrl = process.env.BASE_URL
+
   useEffect(() => {
     if (isEdit && id) {
       const fetchComplaint = async () => {
         try {
           const { data } = await axios.get(
-            `http://localhost:4050/api/complaints/my/${id}`,
+            `${apiUrl}/complaints/my/${id}`,
             {
               headers: { Authorization: `Bearer ${token}` },
             }
@@ -51,7 +53,7 @@ const ComplaintForm = ({ isEdit = false }) => {
     try {
       if (isEdit) {
         await axios.put(
-          `http://localhost:4050/api/complaints/my/${id}`,
+          `${apiUrl}/complaints/my/${id}`,
           formData,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -60,7 +62,7 @@ const ComplaintForm = ({ isEdit = false }) => {
           text: "Your complaint has been updated successfully!",
         });
       } else {
-        await axios.post("http://localhost:4050/api/complaints/add", formData, {
+        await axios.post(`${apiUrl}/complaints/add`, formData, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setMessage({

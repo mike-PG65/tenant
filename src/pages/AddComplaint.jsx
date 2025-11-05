@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 
@@ -9,11 +9,10 @@ const ComplaintForm = ({ isEdit = false }) => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
-  const { id } = useParams(); // complaintId for editing
+  const { id } = useParams();
   const navigate = useNavigate();
   const token = sessionStorage.getItem("token");
 
-  // ✅ Fetch complaint details if editing
   useEffect(() => {
     if (isEdit && id) {
       const fetchComplaint = async () => {
@@ -51,7 +50,6 @@ const ComplaintForm = ({ isEdit = false }) => {
 
     try {
       if (isEdit) {
-        // ✅ Update existing complaint
         await axios.put(
           `http://localhost:4050/api/complaints/my/${id}`,
           formData,
@@ -62,7 +60,6 @@ const ComplaintForm = ({ isEdit = false }) => {
           text: "Your complaint has been updated successfully!",
         });
       } else {
-        // ✅ Add new complaint
         await axios.post("http://localhost:4050/api/complaints/add", formData, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -73,7 +70,6 @@ const ComplaintForm = ({ isEdit = false }) => {
         setFormData({ subject: "", description: "" });
       }
 
-      // Redirect after short delay
       setTimeout(() => navigate("/tenant/my-complaints"), 1500);
     } catch (err) {
       console.error("Error submitting complaint:", err);
@@ -87,79 +83,93 @@ const ComplaintForm = ({ isEdit = false }) => {
   };
 
   return (
-    <motion.div
-      className="max-w-xl mx-auto bg-white p-6 mt-6 rounded-2xl shadow-md border"
-      initial={{ opacity: 0, y: 30 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-    >
-      <h2 className="text-2xl font-bold text-gray-800 mb-4 text-center">
-        {isEdit ? "Edit Complaint" : "Submit a Complaint"}
-      </h2>
+    <div className="min-h-screen flex justify-center items-center bg-gradient-to-br from-gray-50 via-gray-100 to-gray-200 px-4 sm:px-6 md:px-8 py-10">
+      <motion.div
+        className="w-full max-w-md sm:max-w-lg md:max-w-2xl bg-white p-6 sm:p-8 md:p-10 rounded-2xl shadow-lg border border-gray-200"
+        initial={{ opacity: 0, y: 30 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        {/* Header */}
+        <h2 className="text-center text-2xl sm:text-3xl font-bold text-gray-800 mb-6">
+          {isEdit ? "Edit Complaint" : "Submit a Complaint"}
+        </h2>
 
-      {message.text && (
-        <div
-          className={`flex items-center gap-2 p-3 mb-4 rounded-md ${
-            message.type === "success"
-              ? "bg-green-50 text-green-700 border border-green-200"
-              : "bg-red-50 text-red-700 border border-red-200"
-          }`}
+        {/* Animated Message Alert */}
+        <AnimatePresence>
+          {message.text && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+              className={`flex items-center gap-2 p-3 mb-5 rounded-md text-sm sm:text-base ${
+                message.type === "success"
+                  ? "bg-green-50 text-green-700 border border-green-200"
+                  : "bg-red-50 text-red-700 border border-red-200"
+              }`}
+            >
+              {message.type === "success" ? <CheckCircle /> : <AlertCircle />}
+              <p>{message.text}</p>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Form */}
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5 sm:space-y-6 text-sm sm:text-base"
         >
-          {message.type === "success" ? <CheckCircle /> : <AlertCircle />}
-          <p className="text-sm">{message.text}</p>
-        </div>
-      )}
+          {/* Subject */}
+          <div>
+            <label className="block text-gray-700 font-medium mb-2">
+              Complaint Subject
+            </label>
+            <input
+              type="text"
+              name="subject"
+              value={formData.subject}
+              onChange={handleChange}
+              required
+              placeholder="e.g., Water leakage, electricity issue..."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 sm:py-2.5 focus:ring-2 focus:ring-blue-500 outline-none"
+            />
+          </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Subject */}
-        <div>
-          <label className="block text-gray-600 font-medium mb-1">
-            Complaint Subject
-          </label>
-          <input
-            type="text"
-            name="subject"
-            value={formData.subject}
-            onChange={handleChange}
-            required
-            placeholder="e.g., Water leakage, electricity issue..."
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-          />
-        </div>
+          {/* Description */}
+          <div>
+            <label className="block text-gray-700 font-medium mb-2">
+              Complaint Description
+            </label>
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              required
+              placeholder="Describe your issue in detail..."
+              rows={5}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 sm:py-2.5 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+            />
+          </div>
 
-        {/* Description */}
-        <div>
-          <label className="block text-gray-600 font-medium mb-1">
-            Complaint Description
-          </label>
-          <textarea
-            name="description"
-            value={formData.description}
-            onChange={handleChange}
-            required
-            placeholder="Describe your issue in detail..."
-            rows={4}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-          />
-        </div>
-
-        {/* Submit Button */}
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          disabled={loading}
-          type="submit"
-          className="w-full bg-blue-600 text-white font-medium py-2 rounded-md hover:bg-blue-700 transition disabled:opacity-60"
-        >
-          {loading
-            ? isEdit
-              ? "Updating..."
-              : "Submitting..."
-            : isEdit
-            ? "Update Complaint"
-            : "Submit Complaint"}
-        </motion.button>
-      </form>
-    </motion.div>
+          {/* Submit Button */}
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            disabled={loading}
+            type="submit"
+            className="w-full bg-blue-600 text-white font-semibold py-2.5 sm:py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-60"
+          >
+            {loading
+              ? isEdit
+                ? "Updating..."
+                : "Submitting..."
+              : isEdit
+              ? "Update Complaint"
+              : "Submit Complaint"}
+          </motion.button>
+        </form>
+      </motion.div>
+    </div>
   );
 };
 

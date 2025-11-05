@@ -1,27 +1,29 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { motion, AnimatePresence } from "framer-motion";
-import { AlertCircle, X, Pencil } from "lucide-react";
+import {
+  Loader2,
+  AlertCircle,
+  Pencil,
+  Calendar,
+  Wrench,
+  CheckCircle,
+  AlertTriangle,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const MyComplaints = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedComplaint, setSelectedComplaint] = useState(null);
-
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchComplaints = async () => {
       try {
         const { data } = await axios.get("http://localhost:4050/api/complaints/my", {
-          headers: {
-            Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-          },
+          headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
         });
-
-        console.log(data);
         setComplaints(data.complaints || []);
       } catch (err) {
         console.error(err);
@@ -30,152 +32,118 @@ const MyComplaints = () => {
         setLoading(false);
       }
     };
-
     fetchComplaints();
   }, []);
 
-  const handleComplaintClick = async (id) => {
-    try {
-      const { data } = await axios.get(`http://localhost:4050/api/complaints/my/${id}`, {
-        headers: {
-          Authorization: `Bearer ${sessionStorage.getItem("token")}`,
-        },
-      });
-      setSelectedComplaint(data.complaint);
-    } catch (err) {
-      console.error("Error fetching complaint details:", err);
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case "resolved":
+        return (
+          <span className="flex items-center text-green-700 bg-green-100 px-3 py-1 rounded-full text-xs font-semibold">
+            <CheckCircle className="w-4 h-4 mr-1" /> Resolved
+          </span>
+        );
+      case "in progress":
+        return (
+          <span className="flex items-center text-blue-700 bg-blue-100 px-3 py-1 rounded-full text-xs font-semibold">
+            <Wrench className="w-4 h-4 mr-1" /> In Progress
+          </span>
+        );
+      case "pending":
+        return (
+          <span className="flex items-center text-yellow-700 bg-yellow-100 px-3 py-1 rounded-full text-xs font-semibold">
+            <AlertTriangle className="w-4 h-4 mr-1" /> Pending
+          </span>
+        );
+      default:
+        return (
+          <span className="text-gray-600 bg-gray-100 px-3 py-1 rounded-full text-xs font-semibold">
+            Unknown
+          </span>
+        );
     }
   };
 
-  if (loading) return <p className="text-center py-10">Loading complaints...</p>;
-  if (error) return <p className="text-center py-10 text-red-600">{error}</p>;
+  // 🌀 Loading
+  if (loading)
+    return (
+      <div className="flex flex-col items-center justify-center h-[70vh] text-gray-600">
+        <Loader2 size={40} className="animate-spin mb-3 text-blue-600" />
+        <p className="text-lg font-medium">Loading your complaints...</p>
+      </div>
+    );
+
+  // ❌ Error
+  if (error)
+    return (
+      <div className="text-center py-10 text-red-600 font-medium">{error}</div>
+    );
+
+  // 🪶 No Complaints
   if (complaints.length === 0)
-    return <p className="text-center py-10">No complaints submitted yet.</p>;
+    return (
+      <div className="flex flex-col items-center justify-center h-[70vh] text-gray-600">
+        <AlertCircle size={40} className="text-blue-500 mb-3" />
+        <p className="text-lg">You haven’t submitted any complaints yet.</p>
+      </div>
+    );
 
   return (
-    <div className="max-w-4xl mx-auto p-6 space-y-4">
-      <h2 className="text-2xl font-bold text-gray-700 flex items-center gap-2">
-        <AlertCircle size={24} /> My Complaints
-      </h2>
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 p-8">
+      <header className="mb-10 text-center">
+        <h1 className="text-4xl font-bold text-gray-800 mb-2">My Complaints</h1>
+        <p className="text-gray-500 text-lg">
+          View and track the progress of all complaints you’ve submitted.
+        </p>
+      </header>
 
-      <AnimatePresence>
-        {complaints.map((complaint) => (
-          <motion.div
-            key={complaint._id}
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.2 }}
-            className="p-4 bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div
-              onClick={() => handleComplaintClick(complaint._id)}
-              className="cursor-pointer"
-            >
-              <p className="font-semibold text-gray-800">{complaint.subject}</p>
-
-              {/* Truncated description */}
-              <p
-                className="text-gray-700 mt-1 overflow-hidden text-ellipsis line-clamp-2"
-                style={{
-                  display: "-webkit-box",
-                  WebkitLineClamp: 2,
-                  WebkitBoxOrient: "vertical",
-                }}
-              >
-                {complaint.description}
-              </p>
-
-              <p className="mt-2 text-sm text-gray-500">
-                Status:{" "}
-                <span
-                  className={`font-semibold ${
-                    complaint.status === "resolved"
-                      ? "text-green-600"
-                      : complaint.status === "inprogress"
-                      ? "text-blue-600"
-                      : "text-yellow-600"
-                  }`}
-                >
-                  {complaint.status}
-                </span>
-              </p>
-              <p className="mt-1 text-xs text-gray-400">
-                Submitted: {new Date(complaint.createdAt).toLocaleDateString()}
-              </p>
-            </div>
-
-            {/* ✅ Edit button (visible only if complaint is pending) */}
-            {complaint.status === "pending" && (
-              <div className="flex justify-end mt-3">
-                <button
-                  onClick={() => navigate(`/tenant/edit-complaint/${complaint._id}`)}
-                  className="flex items-center gap-1 text-blue-600 text-sm font-medium hover:underline"
-                >
-                  <Pencil size={14} /> Edit
-                </button>
-              </div>
-            )}
-          </motion.div>
-        ))}
-      </AnimatePresence>
-
-      {/* Complaint Details Modal */}
-      <AnimatePresence>
-        {selectedComplaint && (
-          <motion.div
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setSelectedComplaint(null)}
-          >
+      {/* Complaint Cards Grid */}
+      <div className="max-w-6xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <AnimatePresence>
+          {complaints.map((complaint, i) => (
             <motion.div
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.8 }}
-              transition={{ duration: 0.2 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-xl shadow-lg max-w-md w-full p-6 relative"
+              key={complaint._id}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="bg-white border border-gray-100 shadow-md hover:shadow-xl rounded-2xl p-6 transition-all duration-300 cursor-pointer hover:-translate-y-1 flex flex-col justify-between"
             >
-              <button
-                onClick={() => setSelectedComplaint(null)}
-                className="absolute top-3 right-3 text-gray-500 hover:text-gray-800"
-              >
-                <X size={20} />
-              </button>
+              <div>
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-lg font-semibold text-blue-700">
+                    {complaint.subject}
+                  </h3>
+                  {getStatusBadge(complaint.status)}
+                </div>
 
-              <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                {selectedComplaint.subject}
-              </h3>
-              <p className="text-gray-700 mb-4 whitespace-pre-line overflow-y-auto max-h-60">
-                {selectedComplaint.description}
-              </p>
+                <p className="text-gray-700 text-sm mb-4 leading-relaxed line-clamp-3">
+                  {complaint.description}
+                </p>
+              </div>
 
-              <div className="text-sm text-gray-600 space-y-1">
-                <p>
-                  <span className="font-medium">Status:</span>{" "}
-                  <span
-                    className={`${
-                      selectedComplaint.status === "resolved"
-                        ? "text-green-600"
-                        : selectedComplaint.status === "inprogress"
-                        ? "text-blue-600"
-                        : "text-yellow-600"
-                    } font-semibold`}
+              <div className="text-sm text-gray-600 border-t pt-3 flex justify-between items-center">
+                <div className="flex items-center gap-1">
+                  <Calendar size={14} />
+                  {new Date(complaint.createdAt).toLocaleDateString()}
+                </div>
+
+                {complaint.status === "pending" && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/tenant/edit-complaint/${complaint._id}`);
+                    }}
+                    className="flex items-center gap-1 text-blue-600 text-sm font-medium hover:underline"
                   >
-                    {selectedComplaint.status}
-                  </span>
-                </p>
-                <p>
-                  <span className="font-medium">Submitted:</span>{" "}
-                  {new Date(selectedComplaint.createdAt).toLocaleString()}
-                </p>
+                    <Pencil size={14} /> Edit
+                  </button>
+                )}
               </div>
             </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          ))}
+        </AnimatePresence>
+      </div>
     </div>
   );
 };

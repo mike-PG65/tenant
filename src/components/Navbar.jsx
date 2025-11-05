@@ -9,11 +9,14 @@ import {
   LogOut,
   ChevronDown,
   CreditCard,
-  List, // New icon for My Complaints
+  List,
+  Menu,
+  X,
 } from "lucide-react";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   const storedUser = sessionStorage.getItem("user");
@@ -25,12 +28,14 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow-md px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-      {/* Logo / Brand */}
-      <div className="text-2xl font-bold text-blue-600">🏠 Tenant Portal</div>
+    <nav className="bg-white shadow-md px-4 sm:px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+      {/* Logo */}
+      <div className="text-xl sm:text-2xl font-bold text-blue-600">
+        🏠 Tenant Portal
+      </div>
 
-      {/* Main Menu */}
-      <div className="flex items-center space-x-8 text-gray-700 font-medium">
+      {/* Desktop Menu */}
+      <div className="hidden md:flex items-center space-x-6 lg:space-x-8 text-gray-700 font-medium">
         <Link
           to="/"
           className="flex items-center gap-2 hover:text-blue-600 transition-colors"
@@ -67,14 +72,24 @@ const Navbar = () => {
         </Link>
       </div>
 
-      {/* Profile Dropdown */}
-      <div className="relative">
+      {/* Mobile Menu Button */}
+      <button
+        className="md:hidden p-2 rounded-lg hover:bg-gray-100 transition-colors"
+        onClick={() => setMenuOpen((prev) => !prev)}
+      >
+        {menuOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Profile Dropdown (Desktop) */}
+      <div className="relative hidden md:block">
         <button
           onClick={() => setOpen((prev) => !prev)}
           className="flex items-center gap-2 bg-gray-100 px-3 py-2 rounded-full hover:bg-gray-200 transition-colors"
         >
           <User className="text-gray-700" size={20} />
-          <span className="text-gray-800 font-medium">{user?.name || "Tenant"}</span>
+          <span className="text-gray-800 font-medium">
+            {user?.name || "Tenant"}
+          </span>
           <ChevronDown
             size={16}
             className={`transition-transform ${open ? "rotate-180" : ""}`}
@@ -107,6 +122,76 @@ const Navbar = () => {
           )}
         </AnimatePresence>
       </div>
+
+      {/* Mobile Menu Drawer */}
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+            className="absolute top-full left-0 w-full bg-white shadow-md border-t border-gray-100 flex flex-col items-start p-4 space-y-3 md:hidden z-40"
+          >
+            <Link
+              to="/"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors w-full"
+            >
+              <Home size={20} /> Home
+            </Link>
+
+            <Link
+              to="/tenant/complaints"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors w-full"
+            >
+              <AlertCircle size={20} /> Submit Complaint
+            </Link>
+
+            <Link
+              to="/tenant/my-complaints"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors w-full"
+            >
+              <List size={20} /> My Complaints
+            </Link>
+
+            <Link
+              to="/tenant/messages"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors w-full"
+            >
+              <MessageSquare size={20} /> Messages
+            </Link>
+
+            <Link
+              to="/tenant/payment"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors w-full"
+            >
+              <CreditCard size={20} /> Payment
+            </Link>
+
+            <div className="border-t border-gray-200 pt-3 w-full">
+              <Link
+                to="/tenant/profile"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 text-gray-700 hover:text-blue-600 transition-colors w-full"
+              >
+                <User size={20} /> Profile
+              </Link>
+
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-2 text-red-600 hover:text-red-700 transition-colors w-full mt-2"
+              >
+                <LogOut size={20} /> Logout
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </nav>
   );
 };

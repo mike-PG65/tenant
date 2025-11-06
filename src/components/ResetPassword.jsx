@@ -34,7 +34,7 @@ const ResetPassword = () => {
       );
 
       setMessage(res.data.message || "✅ Password reset successful!");
-      setTimeout(() => navigate("/login"), 2000);
+      setTimeout(() => navigate("/auth/login"), 2000);
     } catch (err) {
       setIsError(true);
       setMessage(err.response?.data?.error || "Invalid or expired reset link.");

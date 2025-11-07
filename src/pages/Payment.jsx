@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import io from "socket.io-client";
+import {io} from "socket.io-client";
 import PaymentReceipt from "../components/PaymentReceipt";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";

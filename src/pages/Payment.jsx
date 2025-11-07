@@ -47,8 +47,18 @@ export default function PaymentSection() {
   useEffect(() => {
     if (!tenantId || !BASE_URL) return;
 
-    const socket = io(BASE_URL, { transports: ["websocket"] });
-    socket.emit("registerTenant", tenantId);
+    const socket = io(BASE_URL, {
+  transports: ["websocket"],
+  reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 1000,
+});
+
+socket.on("connect", () => {
+  console.log("⚡ Connected to socket:", socket.id);
+  socket.emit("registerTenant", tenantId);
+});
+
 
     socket.on("connect", () => {
       console.log("⚡ Connected to socket:", socket.id);

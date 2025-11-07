@@ -20,33 +20,23 @@ export default function PaymentSection() {
   const tenant = JSON.parse(sessionStorage.getItem("user"));
   const tenantId = tenant?.id;
 
-  // 🔹 Fetch rental info automatically
+  // 🔹 Fetch rental info
   useEffect(() => {
     const fetchRental = async () => {
       try {
-        if (!tenantId || !token) {
-          console.warn("Missing tenantId or token", { tenantId, token });
-          setRentalLoading(false);
-          return;
-        }
-
-        console.log("Fetching rental for tenant:", tenantId);
+        if (!tenantId || !token) return;
         const { data } = await axios.get(`${BASE_URL}/rental/tenant/${tenantId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        console.log("Rental response:", data);
-
-        // ✅ Handle array or object response
         if (Array.isArray(data) && data.length > 0) {
-          setRental(data[0]); // use the first rental if multiple exist
+          setRental(data[0]);
         } else if (data?.rental) {
           setRental(data.rental);
         } else {
           setStatus({ message: "No rental found for your account.", type: "error" });
         }
       } catch (err) {
-        console.error("❌ Error fetching rental:", err.response || err);
         setStatus({
           message: err.response?.data?.message || "Failed to load rental info.",
           type: "error",
@@ -55,39 +45,20 @@ export default function PaymentSection() {
         setRentalLoading(false);
       }
     };
-
     fetchRental();
   }, [tenantId]);
 
   // 🔹 Handle payment submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitting payment to:", `${BASE_URL}/payment/add`);
 
-    if (!token) {
-      setStatus({ message: "You must be logged in to make a payment.", type: "error" });
-      return;
-    }
-
-    if (!rental?._id) {
-      setStatus({ message: "Rental details not found.", type: "error" });
-      return;
-    }
-
-    if (!paymentMethod) {
-      setStatus({ message: "Please select a payment method.", type: "error" });
-      return;
-    }
-
-    if (!amount || isNaN(amount) || Number(amount) <= 0) {
-      setStatus({ message: "Please enter a valid amount.", type: "error" });
-      return;
-    }
-
-    if (paymentMethod === "mpesa" && !phoneNumber) {
-      setStatus({ message: "Please enter your Mpesa phone number.", type: "error" });
-      return;
-    }
+    if (!token) return setStatus({ message: "You must be logged in.", type: "error" });
+    if (!rental?._id) return setStatus({ message: "Rental not found.", type: "error" });
+    if (!paymentMethod) return setStatus({ message: "Select payment method.", type: "error" });
+    if (!amount || isNaN(amount) || Number(amount) <= 0)
+      return setStatus({ message: "Enter a valid amount.", type: "error" });
+    if (paymentMethod === "mpesa" && !phoneNumber)
+      return setStatus({ message: "Enter Mpesa phone number.", type: "error" });
 
     try {
       setLoading(true);
@@ -100,24 +71,23 @@ export default function PaymentSection() {
         transactionId: paymentMethod === "mpesa" ? `TXN-${Date.now()}` : undefined,
       };
 
-      console.log("Payment payload:", paymentData);
-
       const { data } = await axios.post(`${BASE_URL}/payment/add`, paymentData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
 
-      console.log("✅ Payment response:", data);
-
-      setStatus({ message: "Payment recorded successfully!", type: "success" });
       setPayment(data.payment);
+      setStatus({
+        message:
+          data.payment.status === "successful"
+            ? "Payment recorded successfully!"
+            : "Payment recorded. Awaiting approval for cash payments.",
+        type: "success",
+      });
+
       setAmount("");
       setPhoneNumber("");
       setPaymentMethod("");
     } catch (err) {
-      console.error("❌ Payment error:", err.response || err);
       setStatus({
         message: err.response?.data?.message || "Payment failed. Try again.",
         type: "error",
@@ -127,7 +97,7 @@ export default function PaymentSection() {
     }
   };
 
-  // 🔹 Handle receipt download
+  // 🔹 Download PDF receipt
   const handleDownload = async () => {
     const element = receiptRef.current;
     const canvas = await html2canvas(element);
@@ -137,6 +107,7 @@ export default function PaymentSection() {
     pdf.save(`Tenant_Receipt_${Date.now()}.pdf`);
   };
 
+  // 🔹 UI rendering
   return (
     <div>
       {!payment ? (
@@ -145,7 +116,7 @@ export default function PaymentSection() {
             Complete Your Payment
           </h2>
 
-          {/* 🔹 Rental loading logic */}
+          {/* Rental info */}
           {rentalLoading ? (
             <p className="text-center text-gray-500 animate-pulse">
               Loading your rental details...
@@ -161,6 +132,7 @@ export default function PaymentSection() {
             <p className="text-center text-red-600">No rental record found.</p>
           )}
 
+          {/* Status Message */}
           {status.message && (
             <div
               className={`p-3 rounded-lg text-center font-medium ${
@@ -173,6 +145,7 @@ export default function PaymentSection() {
             </div>
           )}
 
+          {/* Payment Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="block font-semibold mb-2 text-gray-700">
@@ -233,9 +206,19 @@ export default function PaymentSection() {
             </button>
           </form>
         </div>
-      ) : (
+      ) : payment.status === "successful" ? (
         <div ref={receiptRef}>
           <PaymentReceipt payment={payment} onDownload={handleDownload} />
+        </div>
+      ) : (
+        <div className="p-8 max-w-lg mx-auto bg-yellow-50 rounded-3xl shadow-md text-center">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-2">
+            Payment Pending
+          </h2>
+          <p className="text-gray-600">
+            Your payment is awaiting confirmation from the admin. You’ll be able
+            to download your receipt once it’s approved.
+          </p>
         </div>
       )}
     </div>

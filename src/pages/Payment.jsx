@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
+import io from "socket.io-client";
 import PaymentReceipt from "../components/PaymentReceipt";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -12,8 +13,8 @@ export default function PaymentSection() {
   const [loading, setLoading] = useState(false);
   const [rental, setRental] = useState(null);
   const [rentalLoading, setRentalLoading] = useState(true);
-  const [checkingPayment, setCheckingPayment] = useState(false);
   const receiptRef = useRef();
+  const [socket, setSocket] = useState(null);
 
   const savedPayment = JSON.parse(sessionStorage.getItem("latestPayment"));
   const [payment, setPayment] = useState(savedPayment);
@@ -23,12 +24,34 @@ export default function PaymentSection() {
   const tenant = JSON.parse(sessionStorage.getItem("user"));
   const tenantId = tenant?.id;
 
-  // ✅ Fetch rental details
+  // ✅ Initialize socket
+  useEffect(() => {
+    if (!tenantId) return;
+    const newSocket = io(BASE_URL);
+    setSocket(newSocket);
+
+    newSocket.emit("registerTenant", tenantId);
+
+    newSocket.on("paymentApproved", (updatedPayment) => {
+      console.log("💰 Payment approved:", updatedPayment);
+      if (payment && updatedPayment._id === payment._id) {
+        setPayment(updatedPayment);
+        sessionStorage.setItem("latestPayment", JSON.stringify(updatedPayment));
+        setStatus({
+          message: "✅ Payment approved by admin! Receipt is now ready below.",
+          type: "success",
+        });
+      }
+    });
+
+    return () => newSocket.disconnect();
+  }, [tenantId, BASE_URL, payment]);
+
+  // ✅ Fetch rental
   useEffect(() => {
     const fetchRental = async () => {
       try {
         if (!tenantId || !token) {
-          console.warn("Missing tenantId or token", { tenantId, token });
           setRentalLoading(false);
           return;
         }
@@ -37,15 +60,11 @@ export default function PaymentSection() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (Array.isArray(data) && data.length > 0) {
-          setRental(data[0]);
-        } else if (data?.rental) {
-          setRental(data.rental);
-        } else {
-          setStatus({ message: "No rental found for your account.", type: "error" });
-        }
+        if (Array.isArray(data) && data.length > 0) setRental(data[0]);
+        else if (data?.rental) setRental(data.rental);
+        else setStatus({ message: "No rental found for your account.", type: "error" });
       } catch (err) {
-        console.error("❌ Error fetching rental:", err.response || err);
+        console.error("Error fetching rental:", err.response || err);
         setStatus({
           message: err.response?.data?.message || "Failed to load rental info.",
           type: "error",
@@ -58,37 +77,7 @@ export default function PaymentSection() {
     fetchRental();
   }, [tenantId]);
 
-  // ✅ Poll for latest payment status if pending
-  useEffect(() => {
-    if (!payment || payment.status === "successful" || !token) return;
-
-    const fetchUpdatedPayment = async () => {
-      try {
-        setCheckingPayment(true);
-        const { data } = await axios.get(`${BASE_URL}/payment/${payment._id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        if (data.payment) {
-          setPayment(data.payment);
-          sessionStorage.setItem("latestPayment", JSON.stringify(data.payment));
-
-          if (data.payment.status === "successful") {
-            setStatus({ message: "Payment successful! Receipt ready below.", type: "success" });
-          }
-        }
-      } catch (err) {
-        console.error("Error refreshing payment:", err.response || err);
-      } finally {
-        setCheckingPayment(false);
-      }
-    };
-
-    const interval = setInterval(fetchUpdatedPayment, 5000); // check every 5 seconds
-    return () => clearInterval(interval);
-  }, [payment, token]);
-
-  // ✅ Submit payment
+  // ✅ Handle payment submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -154,7 +143,7 @@ export default function PaymentSection() {
       setPhoneNumber("");
       setPaymentMethod("");
     } catch (err) {
-      console.error("❌ Payment error:", err.response || err);
+      console.error("Payment error:", err.response || err);
       setStatus({
         message: err.response?.data?.message || "Payment failed. Try again.",
         type: "error",
@@ -174,26 +163,20 @@ export default function PaymentSection() {
     pdf.save(`Tenant_Receipt_${Date.now()}.pdf`);
   };
 
-  // ✅ Start a new payment
   const handleNewPayment = () => {
     sessionStorage.removeItem("latestPayment");
     setPayment(null);
   };
 
-  // ✅ UI
   return (
     <div>
       {!payment ? (
         // Payment form
         <div className="p-8 max-w-lg mx-auto bg-white rounded-3xl shadow-2xl space-y-6">
-          <h2 className="text-3xl font-bold text-gray-800 text-center">
-            Complete Your Payment
-          </h2>
+          <h2 className="text-3xl font-bold text-gray-800 text-center">Complete Your Payment</h2>
 
           {rentalLoading ? (
-            <p className="text-center text-gray-500 animate-pulse">
-              Loading your rental details...
-            </p>
+            <p className="text-center text-gray-500 animate-pulse">Loading your rental details...</p>
           ) : rental ? (
             <p className="text-center text-gray-600 text-lg">
               Total Amount Due:{" "}
@@ -221,9 +204,7 @@ export default function PaymentSection() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block font-semibold mb-2 text-gray-700">
-                Payment Method
-              </label>
+              <label className="block font-semibold mb-2 text-gray-700">Payment Method</label>
               <select
                 className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
                 value={paymentMethod}
@@ -238,9 +219,7 @@ export default function PaymentSection() {
 
             {paymentMethod && (
               <div>
-                <label className="block font-semibold mb-2 text-gray-700">
-                  Amount to Pay
-                </label>
+                <label className="block font-semibold mb-2 text-gray-700">Amount to Pay</label>
                 <input
                   type="number"
                   placeholder="Enter amount"
@@ -254,9 +233,7 @@ export default function PaymentSection() {
 
             {paymentMethod === "mpesa" && (
               <div>
-                <label className="block font-semibold mb-2 text-gray-700">
-                  Mpesa Phone Number
-                </label>
+                <label className="block font-semibold mb-2 text-gray-700">Mpesa Phone Number</label>
                 <input
                   type="tel"
                   placeholder="07XXXXXXXX"
@@ -280,7 +257,6 @@ export default function PaymentSection() {
           </form>
         </div>
       ) : payment.status === "successful" ? (
-        // ✅ Show receipt when successful
         <div ref={receiptRef}>
           <PaymentReceipt payment={payment} onDownload={handleDownload} />
           <div className="text-center mt-6">
@@ -293,26 +269,15 @@ export default function PaymentSection() {
           </div>
         </div>
       ) : (
-        // Pending payment
         <div className="p-8 max-w-lg mx-auto bg-white rounded-3xl shadow-lg text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Payment Pending {checkingPayment && "⏳ Checking..."}
+            Payment Pending ⏳ Waiting for admin approval...
           </h2>
           <p className="text-gray-600">
             Your payment is currently{" "}
             <span className="font-semibold text-yellow-600">{payment.status}</span>.
-            You’ll receive your receipt once it’s marked as{" "}
-            <span className="font-semibold text-green-700">successful</span>.
+            You’ll receive your receipt as soon as the admin approves it.
           </p>
-
-          <div className="mt-6">
-            <button
-              onClick={handleNewPayment}
-              className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700"
-            >
-              Back to Payment Form
-            </button>
-          </div>
         </div>
       )}
     </div>

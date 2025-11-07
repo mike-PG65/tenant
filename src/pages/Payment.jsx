@@ -12,9 +12,9 @@ export default function PaymentSection() {
   const [loading, setLoading] = useState(false);
   const [rental, setRental] = useState(null);
   const [rentalLoading, setRentalLoading] = useState(true);
+  const [checkingPayment, setCheckingPayment] = useState(false);
   const receiptRef = useRef();
 
-  // ✅ Load existing payment from sessionStorage (persist after reload)
   const savedPayment = JSON.parse(sessionStorage.getItem("latestPayment"));
   const [payment, setPayment] = useState(savedPayment);
 
@@ -23,6 +23,7 @@ export default function PaymentSection() {
   const tenant = JSON.parse(sessionStorage.getItem("user"));
   const tenantId = tenant?.id;
 
+  // ✅ Fetch rental details
   useEffect(() => {
     const fetchRental = async () => {
       try {
@@ -32,12 +33,9 @@ export default function PaymentSection() {
           return;
         }
 
-        console.log("Fetching rental for tenant:", tenantId);
         const { data } = await axios.get(`${BASE_URL}/rental/tenant/${tenantId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-
-        console.log("Rental response:", data);
 
         if (Array.isArray(data) && data.length > 0) {
           setRental(data[0]);
@@ -60,9 +58,39 @@ export default function PaymentSection() {
     fetchRental();
   }, [tenantId]);
 
+  // ✅ Poll for latest payment status if pending
+  useEffect(() => {
+    if (!payment || payment.status === "successful" || !token) return;
+
+    const fetchUpdatedPayment = async () => {
+      try {
+        setCheckingPayment(true);
+        const { data } = await axios.get(`${BASE_URL}/payment/${payment._id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        if (data.payment) {
+          setPayment(data.payment);
+          sessionStorage.setItem("latestPayment", JSON.stringify(data.payment));
+
+          if (data.payment.status === "successful") {
+            setStatus({ message: "Payment successful! Receipt ready below.", type: "success" });
+          }
+        }
+      } catch (err) {
+        console.error("Error refreshing payment:", err.response || err);
+      } finally {
+        setCheckingPayment(false);
+      }
+    };
+
+    const interval = setInterval(fetchUpdatedPayment, 5000); // check every 5 seconds
+    return () => clearInterval(interval);
+  }, [payment, token]);
+
+  // ✅ Submit payment
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitting payment to:", `${BASE_URL}/payment/add`);
 
     if (!token) {
       setStatus({ message: "You must be logged in to make a payment.", type: "error" });
@@ -100,8 +128,6 @@ export default function PaymentSection() {
         transactionId: paymentMethod === "mpesa" ? `TXN-${Date.now()}` : undefined,
       };
 
-      console.log("Payment payload:", paymentData);
-
       const { data } = await axios.post(`${BASE_URL}/payment/add`, paymentData, {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -109,10 +135,7 @@ export default function PaymentSection() {
         },
       });
 
-      console.log("✅ Payment response:", data);
-
       setPayment(data.payment);
-      // ✅ Persist payment to sessionStorage
       sessionStorage.setItem("latestPayment", JSON.stringify(data.payment));
 
       if (data.payment.status === "successful") {
@@ -141,6 +164,7 @@ export default function PaymentSection() {
     }
   };
 
+  // ✅ Download receipt as PDF
   const handleDownload = async () => {
     const element = receiptRef.current;
     const canvas = await html2canvas(element);
@@ -150,15 +174,17 @@ export default function PaymentSection() {
     pdf.save(`Tenant_Receipt_${Date.now()}.pdf`);
   };
 
-  // ✅ Reset payment (for starting a new payment)
+  // ✅ Start a new payment
   const handleNewPayment = () => {
     sessionStorage.removeItem("latestPayment");
     setPayment(null);
   };
 
+  // ✅ UI
   return (
     <div>
       {!payment ? (
+        // Payment form
         <div className="p-8 max-w-lg mx-auto bg-white rounded-3xl shadow-2xl space-y-6">
           <h2 className="text-3xl font-bold text-gray-800 text-center">
             Complete Your Payment
@@ -254,6 +280,7 @@ export default function PaymentSection() {
           </form>
         </div>
       ) : payment.status === "successful" ? (
+        // ✅ Show receipt when successful
         <div ref={receiptRef}>
           <PaymentReceipt payment={payment} onDownload={handleDownload} />
           <div className="text-center mt-6">
@@ -266,8 +293,11 @@ export default function PaymentSection() {
           </div>
         </div>
       ) : (
+        // Pending payment
         <div className="p-8 max-w-lg mx-auto bg-white rounded-3xl shadow-lg text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Payment Pending</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            Payment Pending {checkingPayment && "⏳ Checking..."}
+          </h2>
           <p className="text-gray-600">
             Your payment is currently{" "}
             <span className="font-semibold text-yellow-600">{payment.status}</span>.

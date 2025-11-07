@@ -15,6 +15,7 @@ export default function PaymentSection({ totalAmount = 0, tenantId, rentalId }) 
 
  const handleSubmit = async (e) => {
   e.preventDefault();
+  console.log("Submitting payment to:", `${import.meta.env.VITE_BASE_URL}/payment/add`);
 
   if (!tenantId) {
     setStatus({ message: "You must be logged in to make a payment.", type: "error" });

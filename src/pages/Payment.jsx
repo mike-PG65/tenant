@@ -24,6 +24,7 @@ export default function PaymentSection() {
     const fetchRental = async () => {
       try {
         if (!tenantId || !token) return;
+        console.warn("Missing tenantId or token", { tenantId, token });
 
         console.log("Fetching rental for tenant:", tenantId);
         const { data } = await axios.get(`${BASE_URL}/rental/tenant/${tenantId}`, {

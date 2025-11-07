@@ -20,11 +20,11 @@ export default function PaymentSection() {
   const tenant = JSON.parse(sessionStorage.getItem("user"));
   const tenantId = tenant?.id;
 
-  // ✅ Load last saved payment (if page reloads)
+  // Load last saved payment
   const savedPayment = JSON.parse(sessionStorage.getItem("latestPayment"));
   const [payment, setPayment] = useState(savedPayment);
 
-  // ✅ SOCKET.IO: Listen for approval updates
+  // SOCKET.IO: Listen for approval updates
   useEffect(() => {
     if (!tenantId || !BASE_URL) return;
 
@@ -38,15 +38,13 @@ export default function PaymentSection() {
     socket.on("paymentApproved", (updatedPayment) => {
       console.log("💰 Payment approved event received:", updatedPayment);
 
-      // ✅ Update the UI immediately if this is the same payment
-      if (!payment || updatedPayment._id === payment._id) {
-        setPayment(updatedPayment);
-        sessionStorage.setItem("latestPayment", JSON.stringify(updatedPayment));
-        setStatus({
-          message: "✅ Payment approved by admin! Your receipt is ready below.",
-          type: "success",
-        });
-      }
+      // Update payment state and show receipt
+      setPayment(updatedPayment);
+      sessionStorage.setItem("latestPayment", JSON.stringify(updatedPayment));
+      setStatus({
+        message: "✅ Payment approved by admin! Your receipt is ready below.",
+        type: "success",
+      });
     });
 
     socket.on("disconnect", () => {
@@ -54,16 +52,13 @@ export default function PaymentSection() {
     });
 
     return () => socket.disconnect();
-  }, [tenantId, BASE_URL, payment]);
+  }, [tenantId, BASE_URL]);
 
-  // ✅ Fetch rental data for tenant
+  // Fetch rental data
   useEffect(() => {
     const fetchRental = async () => {
       try {
-        if (!tenantId || !token) {
-          setRentalLoading(false);
-          return;
-        }
+        if (!tenantId || !token) return setRentalLoading(false);
 
         const { data } = await axios.get(`${BASE_URL}/rental/tenant/${tenantId}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -86,7 +81,7 @@ export default function PaymentSection() {
     fetchRental();
   }, [tenantId, token, BASE_URL]);
 
-  // ✅ Handle payment submission
+  // Handle payment submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -142,7 +137,7 @@ export default function PaymentSection() {
     }
   };
 
-  // ✅ Download receipt as PDF
+  // Download receipt as PDF
   const handleDownload = async () => {
     const element = receiptRef.current;
     const canvas = await html2canvas(element);
@@ -155,6 +150,7 @@ export default function PaymentSection() {
   const handleNewPayment = () => {
     sessionStorage.removeItem("latestPayment");
     setPayment(null);
+    setStatus({ message: "", type: "" });
   };
 
   return (
@@ -167,10 +163,7 @@ export default function PaymentSection() {
             <p className="text-center text-gray-500 animate-pulse">Loading your rental details...</p>
           ) : rental ? (
             <p className="text-center text-gray-600 text-lg">
-              Total Amount Due:{" "}
-              <span className="font-extrabold text-gray-900">
-                Ksh {rental.amount?.toLocaleString()}
-              </span>
+              Total Amount Due: <span className="font-extrabold text-gray-900">Ksh {rental.amount?.toLocaleString()}</span>
             </p>
           ) : (
             <p className="text-center text-red-600">No rental record found.</p>
@@ -258,9 +251,7 @@ export default function PaymentSection() {
         </div>
       ) : (
         <div className="p-8 max-w-lg mx-auto bg-white rounded-3xl shadow-lg text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">
-            Payment Pending ⏳ Waiting for admin approval...
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">Payment Pending ⏳ Waiting for admin approval...</h2>
           <p className="text-gray-600">
             Your payment is currently <span className="font-semibold text-yellow-600">{payment.status}</span>.
             You’ll receive your receipt as soon as the admin approves it.

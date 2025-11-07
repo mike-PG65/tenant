@@ -14,28 +14,38 @@ export default function PaymentReceipt({ payment, onDownload }) {
           <span className="font-semibold">Tenant Name:</span>
           <span>{payment.tenantName || "N/A"}</span>
         </div>
+
         <div className="flex justify-between">
           <span className="font-semibold">House:</span>
           <span>{payment.houseName || "N/A"}</span>
         </div>
+
         <div className="flex justify-between">
           <span className="font-semibold">Payment Method:</span>
           <span className="capitalize">{payment.method}</span>
         </div>
+
+        {/* ✅ Show phone only for M-Pesa */}
         {payment.method === "mpesa" && (
           <div className="flex justify-between">
             <span className="font-semibold">Phone Number:</span>
-            <span>{payment.phoneNumber}</span>
+            <span>{payment.phoneNumber || "N/A"}</span>
           </div>
         )}
-        <div className="flex justify-between">
-          <span className="font-semibold">Transaction ID:</span>
-          <span>{payment.transactionId || "N/A"}</span>
-        </div>
+
+        {/* ✅ Show Transaction ID only for non-cash methods */}
+        {payment.method !== "cash" && payment.transactionId && (
+          <div className="flex justify-between">
+            <span className="font-semibold">Transaction ID:</span>
+            <span>{payment.transactionId}</span>
+          </div>
+        )}
+
         <div className="flex justify-between">
           <span className="font-semibold">Amount Paid:</span>
           <span>Ksh {payment.amount.toLocaleString()}</span>
         </div>
+
         <div className="flex justify-between">
           <span className="font-semibold">Balance:</span>
           <span>
@@ -44,6 +54,7 @@ export default function PaymentReceipt({ payment, onDownload }) {
               : `Ksh ${Math.abs(payment.balance).toLocaleString()} (Pending)`}
           </span>
         </div>
+
         <div className="flex justify-between">
           <span className="font-semibold">Status:</span>
           <span
@@ -56,6 +67,7 @@ export default function PaymentReceipt({ payment, onDownload }) {
             {payment.status.toUpperCase()}
           </span>
         </div>
+
         <div className="flex justify-between">
           <span className="font-semibold">Date:</span>
           <span>{new Date(payment.paymentDate).toLocaleString()}</span>

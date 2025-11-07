@@ -38,9 +38,10 @@ export default function PaymentSection() {
     socket.on("paymentApproved", (updatedPayment) => {
       console.log("💰 Payment approved event received:", updatedPayment);
 
-      // Update payment state and show receipt
+      // ✅ Directly set the payment object and sessionStorage
       setPayment(updatedPayment);
       sessionStorage.setItem("latestPayment", JSON.stringify(updatedPayment));
+
       setStatus({
         message: "✅ Payment approved by admin! Your receipt is ready below.",
         type: "success",
@@ -171,13 +172,12 @@ export default function PaymentSection() {
 
           {status.message && (
             <div
-              className={`p-3 rounded-lg text-center font-medium ${
-                status.type === "success"
+              className={`p-3 rounded-lg text-center font-medium ${status.type === "success"
                   ? "bg-green-100 text-green-700"
                   : status.type === "warning"
-                  ? "bg-yellow-100 text-yellow-700"
-                  : "bg-red-100 text-red-700"
-              }`}
+                    ? "bg-yellow-100 text-yellow-700"
+                    : "bg-red-100 text-red-700"
+                }`}
             >
               {status.message}
             </div>
@@ -229,9 +229,8 @@ export default function PaymentSection() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-3 rounded-2xl text-white font-semibold shadow-lg transition-colors ${
-                loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-              }`}
+              className={`w-full py-3 rounded-2xl text-white font-semibold shadow-lg transition-colors ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+                }`}
             >
               {loading ? "Processing..." : "Pay Now"}
             </button>

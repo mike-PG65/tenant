@@ -13,54 +13,74 @@ export default function PaymentSection({ totalAmount = 0, tenantId, rentalId }) 
   const [payment, setPayment] = useState(null);
   const receiptRef = useRef();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    if (!paymentMethod) {
-      setStatus({ message: "Please select a payment method.", type: "error" });
-      return;
-    }
+  if (!tenantId) {
+    setStatus({ message: "You must be logged in to make a payment.", type: "error" });
+    return;
+  }
 
-    if (!amount || isNaN(amount) || Number(amount) <= 0) {
-      setStatus({ message: "Please enter a valid amount.", type: "error" });
-      return;
-    }
+  if (!paymentMethod) {
+    setStatus({ message: "Please select a payment method.", type: "error" });
+    return;
+  }
 
-    if (paymentMethod === "mpesa" && !phoneNumber) {
-      setStatus({ message: "Please enter your Mpesa phone number.", type: "error" });
-      return;
-    }
+  if (!amount || isNaN(amount) || Number(amount) <= 0) {
+    setStatus({ message: "Please enter a valid amount.", type: "error" });
+    return;
+  }
 
-    try {
-      setLoading(true);
-      setStatus({ message: "", type: "" });
+  if (paymentMethod === "mpesa" && !phoneNumber) {
+    setStatus({ message: "Please enter your Mpesa phone number.", type: "error" });
+    return;
+  }
 
-      const { data } = await axios.post(
-        `${import.meta.env.VITE_API_URL}/api/payments`,
-        {
-          tenantId,
-          rentalId,
-          amount: Number(amount),
-          method: paymentMethod,
-          phoneNumber,
-        }
-      );
+  try {
+    setLoading(true);
+    setStatus({ message: "", type: "" });
 
-      setStatus({ message: "Payment recorded successfully!", type: "success" });
-      setPayment(data.payment); // store payment data for receipt
-      setAmount("");
-      setPhoneNumber("");
-      setPaymentMethod("");
-    } catch (err) {
-      console.error(err);
-      setStatus({
-        message: err.response?.data?.message || "Payment failed. Try again.",
-        type: "error",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    // 🔹 Get token from sessionStorage
+    const token = sessionStorage.getItem("token");
+
+    // 🔹 Construct payment data
+    const paymentData = {
+      tenantId,
+      rentalId,
+      amount: Number(amount),
+      method: paymentMethod,
+      transactionId: paymentMethod === "mpesa" ? `TXN-${Date.now()}` : undefined,
+    };
+
+    // 🔹 Send POST request to backend
+    const { data } = await axios.post(
+      `${import.meta.env.VITE_BASE_URL}/payment/add`,
+      paymentData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    // ✅ Success response
+    setStatus({ message: "Payment recorded successfully!", type: "success" });
+    setPayment(data.payment); // Store payment for receipt
+    setAmount("");
+    setPhoneNumber("");
+    setPaymentMethod("");
+  } catch (err) {
+    console.error(err);
+    setStatus({
+      message: err.response?.data?.message || "Payment failed. Try again.",
+      type: "error",
+    });
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // 🔹 Generate downloadable PDF
   const handleDownload = async () => {

@@ -12,30 +12,47 @@ export default function PaymentSection() {
   const [loading, setLoading] = useState(false);
   const [payment, setPayment] = useState(null);
   const [rental, setRental] = useState(null);
+  const [rentalLoading, setRentalLoading] = useState(true); // 🔹 track rental loading
   const receiptRef = useRef();
 
   const BASE_URL = import.meta.env.VITE_BASE_URL;
   const token = sessionStorage.getItem("token");
-  const tenant = JSON.parse(sessionStorage.getItem("user")); // stored at login
+  const tenant = JSON.parse(sessionStorage.getItem("user"));
   const tenantId = tenant?._id;
 
   // 🔹 Fetch rental info automatically
   useEffect(() => {
     const fetchRental = async () => {
       try {
-        if (!tenantId || !token) return;
-        console.warn("Missing tenantId or token", { tenantId, token });
+        if (!tenantId || !token) {
+          console.warn("Missing tenantId or token", { tenantId, token });
+          setRentalLoading(false);
+          return;
+        }
 
         console.log("Fetching rental for tenant:", tenantId);
         const { data } = await axios.get(`${BASE_URL}/rental/tenant/${tenantId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        setRental(data.rental);
+
+        console.log("Rental response:", data);
+
+        if (data?.rental) {
+          setRental(data.rental);
+        } else {
+          setStatus({ message: "No rental found for your account.", type: "error" });
+        }
       } catch (err) {
-        console.error("Error fetching rental:", err);
-        setStatus({ message: "Failed to load rental info.", type: "error" });
+        console.error("❌ Error fetching rental:", err.response || err);
+        setStatus({
+          message: err.response?.data?.message || "Failed to load rental info.",
+          type: "error",
+        });
+      } finally {
+        setRentalLoading(false);
       }
     };
+
     fetchRental();
   }, [tenantId]);
 
@@ -73,7 +90,6 @@ export default function PaymentSection() {
       setLoading(true);
       setStatus({ message: "", type: "" });
 
-      // 🚫 Removed tenantId – backend gets it from the token
       const paymentData = {
         rentalId: rental._id,
         amount: Number(amount),
@@ -122,9 +138,14 @@ export default function PaymentSection() {
     <div>
       {!payment ? (
         <div className="p-8 max-w-lg mx-auto bg-white rounded-3xl shadow-2xl space-y-6">
-          <h2 className="text-3xl font-bold text-gray-800 text-center">Complete Your Payment</h2>
+          <h2 className="text-3xl font-bold text-gray-800 text-center">
+            Complete Your Payment
+          </h2>
 
-          {rental ? (
+          {/* 🔹 Rental loading logic */}
+          {rentalLoading ? (
+            <p className="text-center text-gray-500 animate-pulse">Loading your rental details...</p>
+          ) : rental ? (
             <p className="text-center text-gray-600 text-lg">
               Total Amount Due:{" "}
               <span className="font-extrabold text-gray-900">
@@ -132,13 +153,15 @@ export default function PaymentSection() {
               </span>
             </p>
           ) : (
-            <p className="text-center text-gray-600">Loading your rental details...</p>
+            <p className="text-center text-red-600">No rental record found.</p>
           )}
 
           {status.message && (
             <div
               className={`p-3 rounded-lg text-center font-medium ${
-                status.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                status.type === "success"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
               }`}
             >
               {status.message}
@@ -147,7 +170,9 @@ export default function PaymentSection() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block font-semibold mb-2 text-gray-700">Payment Method</label>
+              <label className="block font-semibold mb-2 text-gray-700">
+                Payment Method
+              </label>
               <select
                 className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
                 value={paymentMethod}
@@ -162,7 +187,9 @@ export default function PaymentSection() {
 
             {paymentMethod && (
               <div>
-                <label className="block font-semibold mb-2 text-gray-700">Amount to Pay</label>
+                <label className="block font-semibold mb-2 text-gray-700">
+                  Amount to Pay
+                </label>
                 <input
                   type="number"
                   placeholder="Enter amount"
@@ -176,7 +203,9 @@ export default function PaymentSection() {
 
             {paymentMethod === "mpesa" && (
               <div>
-                <label className="block font-semibold mb-2 text-gray-700">Mpesa Phone Number</label>
+                <label className="block font-semibold mb-2 text-gray-700">
+                  Mpesa Phone Number
+                </label>
                 <input
                   type="tel"
                   placeholder="07XXXXXXXX"

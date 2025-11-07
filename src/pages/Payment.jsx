@@ -10,10 +10,13 @@ export default function PaymentSection() {
   const [amount, setAmount] = useState("");
   const [status, setStatus] = useState({ message: "", type: "" });
   const [loading, setLoading] = useState(false);
-  const [payment, setPayment] = useState(null);
   const [rental, setRental] = useState(null);
   const [rentalLoading, setRentalLoading] = useState(true);
   const receiptRef = useRef();
+
+  // ✅ Load existing payment from sessionStorage (persist after reload)
+  const savedPayment = JSON.parse(sessionStorage.getItem("latestPayment"));
+  const [payment, setPayment] = useState(savedPayment);
 
   const BASE_URL = import.meta.env.VITE_BASE_URL;
   const token = sessionStorage.getItem("token");
@@ -109,6 +112,8 @@ export default function PaymentSection() {
       console.log("✅ Payment response:", data);
 
       setPayment(data.payment);
+      // ✅ Persist payment to sessionStorage
+      sessionStorage.setItem("latestPayment", JSON.stringify(data.payment));
 
       if (data.payment.status === "successful") {
         setStatus({ message: "Payment successful! Receipt ready below.", type: "success" });
@@ -143,6 +148,12 @@ export default function PaymentSection() {
     const pdf = new jsPDF();
     pdf.addImage(imgData, "PNG", 10, 10, 190, 0);
     pdf.save(`Tenant_Receipt_${Date.now()}.pdf`);
+  };
+
+  // ✅ Reset payment (for starting a new payment)
+  const handleNewPayment = () => {
+    sessionStorage.removeItem("latestPayment");
+    setPayment(null);
   };
 
   return (
@@ -245,6 +256,14 @@ export default function PaymentSection() {
       ) : payment.status === "successful" ? (
         <div ref={receiptRef}>
           <PaymentReceipt payment={payment} onDownload={handleDownload} />
+          <div className="text-center mt-6">
+            <button
+              onClick={handleNewPayment}
+              className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700"
+            >
+              Make Another Payment
+            </button>
+          </div>
         </div>
       ) : (
         <div className="p-8 max-w-lg mx-auto bg-white rounded-3xl shadow-lg text-center">
@@ -255,6 +274,15 @@ export default function PaymentSection() {
             You’ll receive your receipt once it’s marked as{" "}
             <span className="font-semibold text-green-700">successful</span>.
           </p>
+
+          <div className="mt-6">
+            <button
+              onClick={handleNewPayment}
+              className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700"
+            >
+              Back to Payment Form
+            </button>
+          </div>
         </div>
       )}
     </div>

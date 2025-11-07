@@ -18,7 +18,7 @@ export default function PaymentSection() {
   const BASE_URL = import.meta.env.VITE_BASE_URL;
   const token = sessionStorage.getItem("token");
   const tenant = JSON.parse(sessionStorage.getItem("user"));
-  const tenantId = tenant?._id;
+  const tenantId = user?._id;
 
   // 🔹 Fetch rental info automatically
   useEffect(() => {

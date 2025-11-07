@@ -20,11 +20,30 @@ export default function PaymentSection() {
   const tenant = JSON.parse(sessionStorage.getItem("user"));
   const tenantId = tenant?.id;
 
-  // Load last saved payment
+  // ✅ Load last saved payment
   const savedPayment = JSON.parse(sessionStorage.getItem("latestPayment"));
   const [payment, setPayment] = useState(savedPayment);
 
-  // SOCKET.IO: Listen for approval updates
+  // ✅ Fallback fetch in case socket event was missed (e.g., after refresh)
+  useEffect(() => {
+    const fetchLatestPayment = async () => {
+      try {
+        if (!tenantId || !token) return;
+        const { data } = await axios.get(`${BASE_URL}/payment/latest/${tenantId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data?.payment) {
+          setPayment(data.payment);
+          sessionStorage.setItem("latestPayment", JSON.stringify(data.payment));
+        }
+      } catch (err) {
+        console.error("Error fetching latest payment:", err);
+      }
+    };
+    if (!savedPayment) fetchLatestPayment();
+  }, [tenantId, token, BASE_URL]);
+
+  // ✅ SOCKET.IO: Listen for approval updates
   useEffect(() => {
     if (!tenantId || !BASE_URL) return;
 
@@ -38,7 +57,7 @@ export default function PaymentSection() {
     socket.on("paymentApproved", (updatedPayment) => {
       console.log("💰 Payment approved event received:", updatedPayment);
 
-      // ✅ Directly set the payment object and sessionStorage
+      // ✅ Immediately update payment and UI
       setPayment(updatedPayment);
       sessionStorage.setItem("latestPayment", JSON.stringify(updatedPayment));
 
@@ -55,7 +74,7 @@ export default function PaymentSection() {
     return () => socket.disconnect();
   }, [tenantId, BASE_URL]);
 
-  // Fetch rental data
+  // ✅ Fetch rental data
   useEffect(() => {
     const fetchRental = async () => {
       try {
@@ -82,13 +101,16 @@ export default function PaymentSection() {
     fetchRental();
   }, [tenantId, token, BASE_URL]);
 
-  // Handle payment submission
+  // ✅ Handle payment submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!token) return setStatus({ message: "You must be logged in to make a payment.", type: "error" });
-    if (!rental?._id) return setStatus({ message: "Rental details not found.", type: "error" });
-    if (!paymentMethod) return setStatus({ message: "Please select a payment method.", type: "error" });
+    if (!token)
+      return setStatus({ message: "You must be logged in to make a payment.", type: "error" });
+    if (!rental?._id)
+      return setStatus({ message: "Rental details not found.", type: "error" });
+    if (!paymentMethod)
+      return setStatus({ message: "Please select a payment method.", type: "error" });
     if (!amount || isNaN(amount) || Number(amount) <= 0)
       return setStatus({ message: "Please enter a valid amount.", type: "error" });
     if (paymentMethod === "mpesa" && !phoneNumber)
@@ -138,7 +160,7 @@ export default function PaymentSection() {
     }
   };
 
-  // Download receipt as PDF
+  // ✅ Download receipt as PDF
   const handleDownload = async () => {
     const element = receiptRef.current;
     const canvas = await html2canvas(element);
@@ -148,23 +170,33 @@ export default function PaymentSection() {
     pdf.save(`Tenant_Receipt_${Date.now()}.pdf`);
   };
 
+  // ✅ Reset for a new payment
   const handleNewPayment = () => {
     sessionStorage.removeItem("latestPayment");
     setPayment(null);
     setStatus({ message: "", type: "" });
   };
 
+  // ✅ RENDER
   return (
     <div>
       {!payment ? (
+        // ------------------ PAYMENT FORM ------------------
         <div className="p-8 max-w-lg mx-auto bg-white rounded-3xl shadow-2xl space-y-6">
-          <h2 className="text-3xl font-bold text-gray-800 text-center">Complete Your Payment</h2>
+          <h2 className="text-3xl font-bold text-gray-800 text-center">
+            Complete Your Payment
+          </h2>
 
           {rentalLoading ? (
-            <p className="text-center text-gray-500 animate-pulse">Loading your rental details...</p>
+            <p className="text-center text-gray-500 animate-pulse">
+              Loading your rental details...
+            </p>
           ) : rental ? (
             <p className="text-center text-gray-600 text-lg">
-              Total Amount Due: <span className="font-extrabold text-gray-900">Ksh {rental.amount?.toLocaleString()}</span>
+              Total Amount Due:{" "}
+              <span className="font-extrabold text-gray-900">
+                Ksh {rental.amount?.toLocaleString()}
+              </span>
             </p>
           ) : (
             <p className="text-center text-red-600">No rental record found.</p>
@@ -172,12 +204,13 @@ export default function PaymentSection() {
 
           {status.message && (
             <div
-              className={`p-3 rounded-lg text-center font-medium ${status.type === "success"
+              className={`p-3 rounded-lg text-center font-medium ${
+                status.type === "success"
                   ? "bg-green-100 text-green-700"
                   : status.type === "warning"
-                    ? "bg-yellow-100 text-yellow-700"
-                    : "bg-red-100 text-red-700"
-                }`}
+                  ? "bg-yellow-100 text-yellow-700"
+                  : "bg-red-100 text-red-700"
+              }`}
             >
               {status.message}
             </div>
@@ -185,7 +218,9 @@ export default function PaymentSection() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block font-semibold mb-2 text-gray-700">Payment Method</label>
+              <label className="block font-semibold mb-2 text-gray-700">
+                Payment Method
+              </label>
               <select
                 className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
                 value={paymentMethod}
@@ -200,7 +235,9 @@ export default function PaymentSection() {
 
             {paymentMethod && (
               <div>
-                <label className="block font-semibold mb-2 text-gray-700">Amount to Pay</label>
+                <label className="block font-semibold mb-2 text-gray-700">
+                  Amount to Pay
+                </label>
                 <input
                   type="number"
                   placeholder="Enter amount"
@@ -214,7 +251,9 @@ export default function PaymentSection() {
 
             {paymentMethod === "mpesa" && (
               <div>
-                <label className="block font-semibold mb-2 text-gray-700">Mpesa Phone Number</label>
+                <label className="block font-semibold mb-2 text-gray-700">
+                  Mpesa Phone Number
+                </label>
                 <input
                   type="tel"
                   placeholder="07XXXXXXXX"
@@ -229,14 +268,18 @@ export default function PaymentSection() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-3 rounded-2xl text-white font-semibold shadow-lg transition-colors ${loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-                }`}
+              className={`w-full py-3 rounded-2xl text-white font-semibold shadow-lg transition-colors ${
+                loading
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
             >
               {loading ? "Processing..." : "Pay Now"}
             </button>
           </form>
         </div>
       ) : payment.status === "successful" ? (
+        // ------------------ RECEIPT SECTION ------------------
         <div ref={receiptRef}>
           <PaymentReceipt payment={payment} onDownload={handleDownload} />
           <div className="text-center mt-6">
@@ -249,10 +292,14 @@ export default function PaymentSection() {
           </div>
         </div>
       ) : (
+        // ------------------ PENDING STATUS ------------------
         <div className="p-8 max-w-lg mx-auto bg-white rounded-3xl shadow-lg text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">Payment Pending ⏳ Waiting for admin approval...</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">
+            Payment Pending ⏳ Waiting for admin approval...
+          </h2>
           <p className="text-gray-600">
-            Your payment is currently <span className="font-semibold text-yellow-600">{payment.status}</span>.
+            Your payment is currently{" "}
+            <span className="font-semibold text-yellow-600">{payment.status}</span>.
             You’ll receive your receipt as soon as the admin approves it.
           </p>
         </div>

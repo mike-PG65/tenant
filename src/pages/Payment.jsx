@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import axios from "axios";
-import {io} from "socket.io-client";
+import { io } from "socket.io-client";
 import PaymentReceipt from "../components/PaymentReceipt";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -14,40 +14,49 @@ export default function PaymentSection() {
   const [rental, setRental] = useState(null);
   const [rentalLoading, setRentalLoading] = useState(true);
   const receiptRef = useRef();
-  const [socket, setSocket] = useState(null);
-
-  const savedPayment = JSON.parse(sessionStorage.getItem("latestPayment"));
-  const [payment, setPayment] = useState(savedPayment);
 
   const BASE_URL = import.meta.env.VITE_BASE_URL;
   const token = sessionStorage.getItem("token");
   const tenant = JSON.parse(sessionStorage.getItem("user"));
   const tenantId = tenant?.id;
 
-  // ✅ Initialize socket
+  // ✅ Load last saved payment (if page reloads)
+  const savedPayment = JSON.parse(sessionStorage.getItem("latestPayment"));
+  const [payment, setPayment] = useState(savedPayment);
+
+  // ✅ SOCKET.IO: Listen for approval updates
   useEffect(() => {
-    if (!tenantId) return;
-    const newSocket = io(BASE_URL);
-    setSocket(newSocket);
+    if (!tenantId || !BASE_URL) return;
 
-    newSocket.emit("registerTenant", tenantId);
+    const socket = io(BASE_URL, { transports: ["websocket"] });
+    socket.emit("registerTenant", tenantId);
 
-    newSocket.on("paymentApproved", (updatedPayment) => {
-      console.log("💰 Payment approved:", updatedPayment);
-      if (payment && updatedPayment._id === payment._id) {
+    socket.on("connect", () => {
+      console.log("⚡ Connected to socket:", socket.id);
+    });
+
+    socket.on("paymentApproved", (updatedPayment) => {
+      console.log("💰 Payment approved event received:", updatedPayment);
+
+      // ✅ Update the UI immediately if this is the same payment
+      if (!payment || updatedPayment._id === payment._id) {
         setPayment(updatedPayment);
         sessionStorage.setItem("latestPayment", JSON.stringify(updatedPayment));
         setStatus({
-          message: "✅ Payment approved by admin! Receipt is now ready below.",
+          message: "✅ Payment approved by admin! Your receipt is ready below.",
           type: "success",
         });
       }
     });
 
-    return () => newSocket.disconnect();
+    socket.on("disconnect", () => {
+      console.log("❌ Disconnected from socket");
+    });
+
+    return () => socket.disconnect();
   }, [tenantId, BASE_URL, payment]);
 
-  // ✅ Fetch rental
+  // ✅ Fetch rental data for tenant
   useEffect(() => {
     const fetchRental = async () => {
       try {
@@ -64,7 +73,7 @@ export default function PaymentSection() {
         else if (data?.rental) setRental(data.rental);
         else setStatus({ message: "No rental found for your account.", type: "error" });
       } catch (err) {
-        console.error("Error fetching rental:", err.response || err);
+        console.error("Error fetching rental:", err);
         setStatus({
           message: err.response?.data?.message || "Failed to load rental info.",
           type: "error",
@@ -75,35 +84,30 @@ export default function PaymentSection() {
     };
 
     fetchRental();
-  }, [tenantId]);
+  }, [tenantId, token, BASE_URL]);
 
   // ✅ Handle payment submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (!token) {
-      setStatus({ message: "You must be logged in to make a payment.", type: "error" });
-      return;
+      return setStatus({ message: "You must be logged in to make a payment.", type: "error" });
     }
 
     if (!rental?._id) {
-      setStatus({ message: "Rental details not found.", type: "error" });
-      return;
+      return setStatus({ message: "Rental details not found.", type: "error" });
     }
 
     if (!paymentMethod) {
-      setStatus({ message: "Please select a payment method.", type: "error" });
-      return;
+      return setStatus({ message: "Please select a payment method.", type: "error" });
     }
 
     if (!amount || isNaN(amount) || Number(amount) <= 0) {
-      setStatus({ message: "Please enter a valid amount.", type: "error" });
-      return;
+      return setStatus({ message: "Please enter a valid amount.", type: "error" });
     }
 
     if (paymentMethod === "mpesa" && !phoneNumber) {
-      setStatus({ message: "Please enter your Mpesa phone number.", type: "error" });
-      return;
+      return setStatus({ message: "Please enter your Mpesa phone number.", type: "error" });
     }
 
     try {
@@ -118,10 +122,7 @@ export default function PaymentSection() {
       };
 
       const { data } = await axios.post(`${BASE_URL}/payment/add`, paymentData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       });
 
       setPayment(data.payment);
@@ -133,8 +134,8 @@ export default function PaymentSection() {
         setStatus({
           message:
             data.payment.method === "cash"
-              ? "Your payment is pending approval by the admin."
-              : "Payment is processing. You will receive a receipt once confirmed.",
+              ? "Your payment is pending admin approval."
+              : "Processing your payment... You’ll receive a receipt soon.",
           type: "warning",
         });
       }
@@ -143,7 +144,7 @@ export default function PaymentSection() {
       setPhoneNumber("");
       setPaymentMethod("");
     } catch (err) {
-      console.error("Payment error:", err.response || err);
+      console.error("Payment error:", err);
       setStatus({
         message: err.response?.data?.message || "Payment failed. Try again.",
         type: "error",
@@ -176,7 +177,9 @@ export default function PaymentSection() {
           <h2 className="text-3xl font-bold text-gray-800 text-center">Complete Your Payment</h2>
 
           {rentalLoading ? (
-            <p className="text-center text-gray-500 animate-pulse">Loading your rental details...</p>
+            <p className="text-center text-gray-500 animate-pulse">
+              Loading your rental details...
+            </p>
           ) : rental ? (
             <p className="text-center text-gray-600 text-lg">
               Total Amount Due:{" "}
@@ -233,7 +236,9 @@ export default function PaymentSection() {
 
             {paymentMethod === "mpesa" && (
               <div>
-                <label className="block font-semibold mb-2 text-gray-700">Mpesa Phone Number</label>
+                <label className="block font-semibold mb-2 text-gray-700">
+                  Mpesa Phone Number
+                </label>
                 <input
                   type="tel"
                   placeholder="07XXXXXXXX"
@@ -282,4 +287,4 @@ export default function PaymentSection() {
       )}
     </div>
   );
-};
+}

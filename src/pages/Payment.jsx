@@ -90,25 +90,13 @@ export default function PaymentSection() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!token) {
-      return setStatus({ message: "You must be logged in to make a payment.", type: "error" });
-    }
-
-    if (!rental?._id) {
-      return setStatus({ message: "Rental details not found.", type: "error" });
-    }
-
-    if (!paymentMethod) {
-      return setStatus({ message: "Please select a payment method.", type: "error" });
-    }
-
-    if (!amount || isNaN(amount) || Number(amount) <= 0) {
+    if (!token) return setStatus({ message: "You must be logged in to make a payment.", type: "error" });
+    if (!rental?._id) return setStatus({ message: "Rental details not found.", type: "error" });
+    if (!paymentMethod) return setStatus({ message: "Please select a payment method.", type: "error" });
+    if (!amount || isNaN(amount) || Number(amount) <= 0)
       return setStatus({ message: "Please enter a valid amount.", type: "error" });
-    }
-
-    if (paymentMethod === "mpesa" && !phoneNumber) {
+    if (paymentMethod === "mpesa" && !phoneNumber)
       return setStatus({ message: "Please enter your Mpesa phone number.", type: "error" });
-    }
 
     try {
       setLoading(true);
@@ -172,14 +160,11 @@ export default function PaymentSection() {
   return (
     <div>
       {!payment ? (
-        // Payment form
         <div className="p-8 max-w-lg mx-auto bg-white rounded-3xl shadow-2xl space-y-6">
           <h2 className="text-3xl font-bold text-gray-800 text-center">Complete Your Payment</h2>
 
           {rentalLoading ? (
-            <p className="text-center text-gray-500 animate-pulse">
-              Loading your rental details...
-            </p>
+            <p className="text-center text-gray-500 animate-pulse">Loading your rental details...</p>
           ) : rental ? (
             <p className="text-center text-gray-600 text-lg">
               Total Amount Due:{" "}
@@ -236,9 +221,7 @@ export default function PaymentSection() {
 
             {paymentMethod === "mpesa" && (
               <div>
-                <label className="block font-semibold mb-2 text-gray-700">
-                  Mpesa Phone Number
-                </label>
+                <label className="block font-semibold mb-2 text-gray-700">Mpesa Phone Number</label>
                 <input
                   type="tel"
                   placeholder="07XXXXXXXX"
@@ -279,8 +262,7 @@ export default function PaymentSection() {
             Payment Pending ⏳ Waiting for admin approval...
           </h2>
           <p className="text-gray-600">
-            Your payment is currently{" "}
-            <span className="font-semibold text-yellow-600">{payment.status}</span>.
+            Your payment is currently <span className="font-semibold text-yellow-600">{payment.status}</span>.
             You’ll receive your receipt as soon as the admin approves it.
           </p>
         </div>

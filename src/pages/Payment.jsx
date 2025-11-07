@@ -12,7 +12,7 @@ export default function PaymentSection() {
   const [loading, setLoading] = useState(false);
   const [payment, setPayment] = useState(null);
   const [rental, setRental] = useState(null);
-  const [rentalLoading, setRentalLoading] = useState(true); // 🔹 track rental loading
+  const [rentalLoading, setRentalLoading] = useState(true);
   const receiptRef = useRef();
 
   const BASE_URL = import.meta.env.VITE_BASE_URL;
@@ -37,7 +37,10 @@ export default function PaymentSection() {
 
         console.log("Rental response:", data);
 
-        if (data?.rental) {
+        // ✅ Handle array or object response
+        if (Array.isArray(data) && data.length > 0) {
+          setRental(data[0]); // use the first rental if multiple exist
+        } else if (data?.rental) {
           setRental(data.rental);
         } else {
           setStatus({ message: "No rental found for your account.", type: "error" });
@@ -144,7 +147,9 @@ export default function PaymentSection() {
 
           {/* 🔹 Rental loading logic */}
           {rentalLoading ? (
-            <p className="text-center text-gray-500 animate-pulse">Loading your rental details...</p>
+            <p className="text-center text-gray-500 animate-pulse">
+              Loading your rental details...
+            </p>
           ) : rental ? (
             <p className="text-center text-gray-600 text-lg">
               Total Amount Due:{" "}

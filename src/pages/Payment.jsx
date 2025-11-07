@@ -24,7 +24,7 @@ export default function PaymentSection() {
   const savedPayment = JSON.parse(sessionStorage.getItem("latestPayment"));
   const [payment, setPayment] = useState(savedPayment);
 
-  // ✅ Fallback fetch in case socket event was missed (e.g., after refresh)
+  // ✅ Fallback fetch if socket missed
   useEffect(() => {
     const fetchLatestPayment = async () => {
       try {
@@ -57,7 +57,6 @@ export default function PaymentSection() {
     socket.on("paymentApproved", (updatedPayment) => {
       console.log("💰 Payment approved event received:", updatedPayment);
 
-      // ✅ Immediately update payment and UI
       setPayment(updatedPayment);
       sessionStorage.setItem("latestPayment", JSON.stringify(updatedPayment));
 
@@ -73,6 +72,31 @@ export default function PaymentSection() {
 
     return () => socket.disconnect();
   }, [tenantId, BASE_URL]);
+
+  // ✅ Polling fallback (every 5 seconds) in case socket fails
+  useEffect(() => {
+    const checkForApproval = async () => {
+      if (!payment?._id || payment.status === "successful") return;
+      try {
+        const { data } = await axios.get(`${BASE_URL}/payment/${payment._id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (data?.payment?.status === "successful") {
+          setPayment(data.payment);
+          sessionStorage.setItem("latestPayment", JSON.stringify(data.payment));
+          setStatus({
+            message: "✅ Payment approved! Your receipt is now available.",
+            type: "success",
+          });
+        }
+      } catch (err) {
+        console.error("Approval check error:", err);
+      }
+    };
+
+    const interval = setInterval(checkForApproval, 5000);
+    return () => clearInterval(interval);
+  }, [payment, BASE_URL, token]);
 
   // ✅ Fetch rental data
   useEffect(() => {
@@ -170,7 +194,7 @@ export default function PaymentSection() {
     pdf.save(`Tenant_Receipt_${Date.now()}.pdf`);
   };
 
-  // ✅ Reset for a new payment
+  // ✅ Reset for new payment
   const handleNewPayment = () => {
     sessionStorage.removeItem("latestPayment");
     setPayment(null);

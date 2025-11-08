@@ -24,7 +24,7 @@ export default function PaymentSection() {
   const savedPayment = JSON.parse(sessionStorage.getItem("latestPayment"));
   const [payment, setPayment] = useState(savedPayment);
 
-  // ✅ Fallback fetch if socket missed
+  // ✅ Fetch latest payment (fallback if socket missed)
   useEffect(() => {
     const fetchLatestPayment = async () => {
       try {
@@ -43,33 +43,30 @@ export default function PaymentSection() {
     if (!savedPayment) fetchLatestPayment();
   }, [tenantId, token, BASE_URL]);
 
-  // ✅ SOCKET.IO: Listen for approval updates
+  // ✅ SOCKET.IO — Listen for approval updates
   useEffect(() => {
     if (!tenantId || !BASE_URL) return;
 
-    const socket = io(BASE_URL, {
-  transports: ["websocket"],
-  reconnection: true,
-  reconnectionAttempts: 10,
-  reconnectionDelay: 1000,
-});
+    // Use root server URL (no /api)
+    const SOCKET_URL = BASE_URL.replace("/api", "");
 
-socket.on("connect", () => {
-  console.log("⚡ Connected to socket:", socket.id);
-  socket.emit("registerTenant", tenantId);
-});
-
+    const socket = io(SOCKET_URL, {
+      withCredentials: true,
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+    });
 
     socket.on("connect", () => {
       console.log("⚡ Connected to socket:", socket.id);
+      socket.emit("registerTenant", tenantId);
     });
 
     socket.on("paymentApproved", (updatedPayment) => {
       console.log("💰 Payment approved event received:", updatedPayment);
-
       setPayment(updatedPayment);
       sessionStorage.setItem("latestPayment", JSON.stringify(updatedPayment));
-
       setStatus({
         message: "✅ Payment approved by admin! Your receipt is ready below.",
         type: "success",
@@ -83,7 +80,7 @@ socket.on("connect", () => {
     return () => socket.disconnect();
   }, [tenantId, BASE_URL]);
 
-  // ✅ Polling fallback (every 5 seconds) in case socket fails
+  // ✅ Poll every 5s as fallback (if socket fails)
   useEffect(() => {
     const checkForApproval = async () => {
       if (!payment?._id || payment.status === "successful") return;
@@ -108,7 +105,7 @@ socket.on("connect", () => {
     return () => clearInterval(interval);
   }, [payment, BASE_URL, token]);
 
-  // ✅ Fetch rental data
+  // ✅ Fetch rental info
   useEffect(() => {
     const fetchRental = async () => {
       try {
@@ -204,7 +201,7 @@ socket.on("connect", () => {
     pdf.save(`Tenant_Receipt_${Date.now()}.pdf`);
   };
 
-  // ✅ Reset for new payment
+  // ✅ Reset payment for new one
   const handleNewPayment = () => {
     sessionStorage.removeItem("latestPayment");
     setPayment(null);

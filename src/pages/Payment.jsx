@@ -24,22 +24,27 @@ export default function PaymentSection() {
   const savedPayment = JSON.parse(sessionStorage.getItem("latestPayment"));
   const [payment, setPayment] = useState(savedPayment);
 
-  // ✅ Fetch latest payment (fallback if socket missed)
+  // ✅ Fetch latest payment from backend
   useEffect(() => {
     const fetchLatestPayment = async () => {
       try {
         if (!tenantId || !token) return;
-        const { data } = await axios.get(`${BASE_URL}/payment/latest/${tenantId}`, {
+
+        const { data } = await axios.get(`${BASE_URL}/payment/my`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (data?.payment) {
-          setPayment(data.payment);
-          sessionStorage.setItem("latestPayment", JSON.stringify(data.payment));
+
+        if (data?.payments?.length > 0) {
+          // Assuming backend returns payments sorted descending by createdAt
+          const latest = data.payments[0];
+          setPayment(latest);
+          sessionStorage.setItem("latestPayment", JSON.stringify(latest));
         }
       } catch (err) {
         console.error("Error fetching latest payment:", err);
       }
     };
+
     if (!savedPayment) fetchLatestPayment();
   }, [tenantId, token, BASE_URL]);
 
@@ -47,7 +52,6 @@ export default function PaymentSection() {
   useEffect(() => {
     if (!tenantId || !BASE_URL) return;
 
-    // Use root server URL (no /api)
     const SOCKET_URL = BASE_URL.replace("/api", "");
 
     const socket = io(SOCKET_URL, {
@@ -73,21 +77,21 @@ export default function PaymentSection() {
       });
     });
 
-    socket.on("disconnect", () => {
-      console.log("❌ Disconnected from socket");
-    });
+    socket.on("disconnect", () => console.log("❌ Disconnected from socket"));
 
     return () => socket.disconnect();
   }, [tenantId, BASE_URL]);
 
-  // ✅ Poll every 5s as fallback (if socket fails)
+  // ✅ Poll every 5s as fallback
   useEffect(() => {
     const checkForApproval = async () => {
       if (!payment?._id || payment.status === "successful") return;
+
       try {
         const { data } = await axios.get(`${BASE_URL}/payment/${payment._id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
         if (data?.payment?.status === "successful") {
           setPayment(data.payment);
           sessionStorage.setItem("latestPayment", JSON.stringify(data.payment));
@@ -208,16 +212,17 @@ export default function PaymentSection() {
     setStatus({ message: "", type: "" });
   };
 
+  // ✅ Compute remaining balance
+  const remainingBalance = rental ? rental.amount - (payment?.amountPaid || 0) : 0;
+
   // ✅ RENDER
   return (
     <div>
       {!payment ? (
-        // ------------------ PAYMENT FORM ------------------
         <div className="p-8 max-w-lg mx-auto bg-white rounded-3xl shadow-2xl space-y-6">
           <h2 className="text-3xl font-bold text-gray-800 text-center">
             Complete Your Payment
           </h2>
-
 
           {rentalLoading ? (
             <p className="text-center text-gray-500 animate-pulse">
@@ -225,21 +230,15 @@ export default function PaymentSection() {
             </p>
           ) : rental ? (
             <p className="text-center text-gray-600 text-lg">
-              {payment ? (
-                Number(payment.balance) > 0 ? (
-                  <>Balance Remaining: <span className="font-extrabold text-gray-900">Ksh {Number(payment.balance).toLocaleString()}</span></>
-                ) : (
-                  <>No outstanding balance. <span className="font-extrabold text-gray-900">Ksh 0</span></>
-                )
+              {remainingBalance > 0 ? (
+                <>Balance Remaining: <span className="font-extrabold text-gray-900">Ksh {remainingBalance.toLocaleString()}</span></>
               ) : (
-                <>No payment record yet. <span className="font-extrabold text-gray-900">Ksh {rental.amount?.toLocaleString()}</span></>
+                <>No outstanding balance. <span className="font-extrabold text-gray-900">Ksh 0</span></>
               )}
             </p>
           ) : (
             <p className="text-center text-red-600">No rental record found.</p>
           )}
-
-
 
           {status.message && (
             <div
@@ -283,6 +282,7 @@ export default function PaymentSection() {
                   onChange={(e) => setAmount(e.target.value)}
                   className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
                   required
+                  max={remainingBalance}
                 />
               </div>
             )}
@@ -305,7 +305,7 @@ export default function PaymentSection() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || remainingBalance <= 0}
               className={`w-full py-3 rounded-2xl text-white font-semibold shadow-lg transition-colors ${loading
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-blue-600 hover:bg-blue-700"
@@ -316,7 +316,6 @@ export default function PaymentSection() {
           </form>
         </div>
       ) : payment.status === "successful" ? (
-        // ------------------ RECEIPT SECTION ------------------
         <div ref={receiptRef}>
           <PaymentReceipt payment={payment} onDownload={handleDownload} />
           <div className="text-center mt-6">
@@ -329,7 +328,6 @@ export default function PaymentSection() {
           </div>
         </div>
       ) : (
-        // ------------------ PENDING STATUS ------------------
         <div className="p-8 max-w-lg mx-auto bg-white rounded-3xl shadow-lg text-center">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
             Payment Pending ⏳ Waiting for admin approval...

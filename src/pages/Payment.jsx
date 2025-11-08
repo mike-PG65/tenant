@@ -222,9 +222,16 @@ export default function PaymentSection() {
             <p className="text-center text-gray-500 animate-pulse">
               Loading your rental details...
             </p>
+          ) : payment && payment.balance !== undefined ? (
+            <p className="text-center text-gray-600 text-lg">
+              Balance Remaining:{" "}
+              <span className="font-extrabold text-gray-900">
+                Ksh {Number(payment.balance).toLocaleString()}
+              </span>
+            </p>
           ) : rental ? (
             <p className="text-center text-gray-600 text-lg">
-              Total Amount Due:{" "}
+              No payment record yet. Rent Amount:{" "}
               <span className="font-extrabold text-gray-900">
                 Ksh {rental.amount?.toLocaleString()}
               </span>
@@ -233,15 +240,15 @@ export default function PaymentSection() {
             <p className="text-center text-red-600">No rental record found.</p>
           )}
 
+
           {status.message && (
             <div
-              className={`p-3 rounded-lg text-center font-medium ${
-                status.type === "success"
+              className={`p-3 rounded-lg text-center font-medium ${status.type === "success"
                   ? "bg-green-100 text-green-700"
                   : status.type === "warning"
-                  ? "bg-yellow-100 text-yellow-700"
-                  : "bg-red-100 text-red-700"
-              }`}
+                    ? "bg-yellow-100 text-yellow-700"
+                    : "bg-red-100 text-red-700"
+                }`}
             >
               {status.message}
             </div>
@@ -299,11 +306,10 @@ export default function PaymentSection() {
             <button
               type="submit"
               disabled={loading}
-              className={`w-full py-3 rounded-2xl text-white font-semibold shadow-lg transition-colors ${
-                loading
+              className={`w-full py-3 rounded-2xl text-white font-semibold shadow-lg transition-colors ${loading
                   ? "bg-gray-400 cursor-not-allowed"
                   : "bg-blue-600 hover:bg-blue-700"
-              }`}
+                }`}
             >
               {loading ? "Processing..." : "Pay Now"}
             </button>

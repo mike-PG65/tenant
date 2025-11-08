@@ -9,6 +9,7 @@ export default function PaymentSection() {
   const [paymentMethod, setPaymentMethod] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [amount, setAmount] = useState("");
+  const [month, setMonth] = useState(""); // ✅ Month selection state
   const [status, setStatus] = useState({ message: "", type: "" });
   const [loading, setLoading] = useState(false);
   const [rental, setRental] = useState(null);
@@ -20,11 +21,9 @@ export default function PaymentSection() {
   const tenant = JSON.parse(sessionStorage.getItem("user"));
   const tenantId = tenant?.id;
 
-  // ✅ Load last saved payment
   const savedPayment = JSON.parse(sessionStorage.getItem("latestPayment"));
   const [payment, setPayment] = useState(savedPayment);
 
-  // ✅ Fetch latest payment from backend
   useEffect(() => {
     const fetchLatestPayment = async () => {
       try {
@@ -35,7 +34,6 @@ export default function PaymentSection() {
         });
 
         if (data?.payments?.length > 0) {
-          // Assuming backend returns payments sorted descending by createdAt
           const latest = data.payments[0];
           setPayment(latest);
           sessionStorage.setItem("latestPayment", JSON.stringify(latest));
@@ -48,7 +46,6 @@ export default function PaymentSection() {
     if (!savedPayment) fetchLatestPayment();
   }, [tenantId, token, BASE_URL]);
 
-  // ✅ SOCKET.IO — Listen for approval updates
   useEffect(() => {
     if (!tenantId || !BASE_URL) return;
 
@@ -82,7 +79,6 @@ export default function PaymentSection() {
     return () => socket.disconnect();
   }, [tenantId, BASE_URL]);
 
-  // ✅ Poll every 5s as fallback
   useEffect(() => {
     const checkForApproval = async () => {
       if (!payment?._id || payment.status === "successful") return;
@@ -109,7 +105,6 @@ export default function PaymentSection() {
     return () => clearInterval(interval);
   }, [payment, BASE_URL, token]);
 
-  // ✅ Fetch rental info
   useEffect(() => {
     const fetchRental = async () => {
       try {
@@ -136,7 +131,6 @@ export default function PaymentSection() {
     fetchRental();
   }, [tenantId, token, BASE_URL]);
 
-  // ✅ Handle payment submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -146,6 +140,7 @@ export default function PaymentSection() {
       return setStatus({ message: "Rental details not found.", type: "error" });
     if (!paymentMethod)
       return setStatus({ message: "Please select a payment method.", type: "error" });
+    if (!month) return setStatus({ message: "Please select a month.", type: "error" });
     if (!amount || isNaN(amount) || Number(amount) <= 0)
       return setStatus({ message: "Please enter a valid amount.", type: "error" });
     if (paymentMethod === "mpesa" && !phoneNumber)
@@ -159,6 +154,7 @@ export default function PaymentSection() {
         rentalId: rental._id,
         amount: Number(amount),
         method: paymentMethod,
+        month, // ✅ Include month in submission
         transactionId: paymentMethod === "mpesa" ? `TXN-${Date.now()}` : undefined,
       };
 
@@ -184,6 +180,7 @@ export default function PaymentSection() {
       setAmount("");
       setPhoneNumber("");
       setPaymentMethod("");
+      setMonth(""); // ✅ Reset month
     } catch (err) {
       console.error("Payment error:", err);
       setStatus({
@@ -195,7 +192,6 @@ export default function PaymentSection() {
     }
   };
 
-  // ✅ Download receipt as PDF
   const handleDownload = async () => {
     const element = receiptRef.current;
     const canvas = await html2canvas(element);
@@ -205,19 +201,14 @@ export default function PaymentSection() {
     pdf.save(`Tenant_Receipt_${Date.now()}.pdf`);
   };
 
-  // ✅ Reset payment for new one
   const handleNewPayment = () => {
     sessionStorage.removeItem("latestPayment");
     setPayment(null);
     setStatus({ message: "", type: "" });
   };
 
-  // ✅ Compute remaining balance
- 
   const remainingBalance = payment ? payment.balance : rental?.amount || 0;
 
-
-  // ✅ RENDER
   return (
     <div>
       {!payment ? (
@@ -273,20 +264,36 @@ export default function PaymentSection() {
             </div>
 
             {paymentMethod && (
-              <div>
-                <label className="block font-semibold mb-2 text-gray-700">
-                  Amount to Pay
-                </label>
-                <input
-                  type="number"
-                  placeholder="Enter amount"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                  required
-                  max={remainingBalance}
-                />
-              </div>
+              <>
+                <div>
+                  <label className="block font-semibold mb-2 text-gray-700">
+                    Select Month
+                  </label>
+                  <input
+                    type="month"
+                    className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    value={month}
+                    onChange={(e) => setMonth(e.target.value)}
+                    required
+                    min={new Date().toISOString().slice(0, 7)} // disables past months
+                  />
+                </div>
+
+                <div>
+                  <label className="block font-semibold mb-2 text-gray-700">
+                    Amount to Pay
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="Enter amount"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                    required
+                    max={remainingBalance}
+                  />
+                </div>
+              </>
             )}
 
             {paymentMethod === "mpesa" && (

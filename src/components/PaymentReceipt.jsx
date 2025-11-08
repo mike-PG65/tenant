@@ -6,14 +6,19 @@ export default function PaymentReceipt({ payment, onDownload }) {
   const isCash = payment.method === "cash";
   const isMpesa = payment.method === "mpesa";
 
+  // Format month nicely (e.g., "November 2025")
+  const formattedMonth = payment.month
+    ? new Date(payment.month + "-01").toLocaleString("en-US", { month: "long", year: "numeric" })
+    : "N/A";
+
   return (
     <div className="max-w-2xl mx-auto mt-10 bg-gradient-to-b from-white to-gray-50 shadow-2xl rounded-2xl p-10 border border-gray-200 relative overflow-hidden">
-      {/* ✅ Watermark */}
+      {/* Watermark */}
       <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center text-6xl font-bold text-gray-400 rotate-[-30deg]">
         RECEIPT
       </div>
 
-      {/* ✅ Header */}
+      {/* Header */}
       <div className="flex justify-between items-center mb-8 relative">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Tenant Rent Receipt</h2>
@@ -27,16 +32,18 @@ export default function PaymentReceipt({ payment, onDownload }) {
         </div>
       </div>
 
-      {/* ✅ Divider */}
       <hr className="mb-6 border-gray-300" />
 
-      {/* ✅ Tenant Details */}
+      {/* Tenant Details */}
       <div className="grid grid-cols-2 gap-y-3 text-gray-700 mb-6">
         <p className="font-semibold">Tenant Name:</p>
         <p>{payment.tenantName || "N/A"}</p>
 
         <p className="font-semibold">House:</p>
         <p>{payment.houseName || "N/A"}</p>
+
+        <p className="font-semibold">Payment Month:</p> {/* New */}
+        <p>{formattedMonth}</p>
 
         <p className="font-semibold">Payment Method:</p>
         <p className="capitalize">{payment.method}</p>
@@ -56,7 +63,7 @@ export default function PaymentReceipt({ payment, onDownload }) {
         )}
       </div>
 
-      {/* ✅ Payment Summary Box */}
+      {/* Payment Summary Box */}
       <div className="bg-gray-100 rounded-xl p-6 shadow-inner mb-8">
         <h3 className="text-lg font-semibold text-gray-800 mb-3 border-b border-gray-300 pb-2">
           Payment Summary
@@ -97,7 +104,7 @@ export default function PaymentReceipt({ payment, onDownload }) {
         </div>
       </div>
 
-      {/* ✅ Footer */}
+      {/* Footer */}
       <p className="text-center text-gray-600 italic mb-4">
         Thank you for your timely payment!
       </p>

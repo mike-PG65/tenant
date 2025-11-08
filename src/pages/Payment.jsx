@@ -213,7 +213,9 @@ export default function PaymentSection() {
   };
 
   // ✅ Compute remaining balance
-  const remainingBalance = rental ? rental.amount - (payment?.amountPaid || 0) : 0;
+ 
+  const remainingBalance = payment ? payment.balance : rental?.amount || 0;
+
 
   // ✅ RENDER
   return (

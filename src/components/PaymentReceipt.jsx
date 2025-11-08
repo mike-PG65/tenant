@@ -72,12 +72,12 @@ export default function PaymentReceipt({ payment, onDownload }) {
           <span>Balance:</span>
           <span
             className={`font-semibold ${
-              payment.balance >= 0 ? "text-green-700" : "text-red-600"
+              payment.balance === 0 ? "text-green-700" : "text-red-600"
             }`}
           >
-            {payment.balance >= 0
-              ? `Ksh ${payment.balance.toLocaleString()} (Overpaid)`
-              : `Ksh ${Math.abs(payment.balance).toLocaleString()} (Pending)`}
+            {payment.balance === 0
+              ? `Ksh 0 (Paid in full)`
+              : `Ksh ${payment.balance.toLocaleString()} (Pending)`}
           </span>
         </div>
 

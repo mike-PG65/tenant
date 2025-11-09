@@ -323,7 +323,7 @@ const handleDownload = async () => {
           </form>
         </div>
       ) : payment.status === "successful" ? (
-        <div ref={receiptRef} style={{ backgroundColor: "#fff", padding: "20px" }}>
+        <div ref={receiptRef} style={{ backgroundColor: '#ffffff', color: '#000000' }}>
           <PaymentReceipt payment={payment} onDownload={handleDownload} />
           <div className="text-center mt-6">
             <button

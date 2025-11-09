@@ -174,16 +174,27 @@ export default function PaymentSection() {
     }
   };
 
- const handleDownload = async () => {
+const handleDownload = async () => {
   if (!receiptRef.current) return;
   const element = receiptRef.current;
 
-  // Temporarily remove gradients before export
-  const originalBackground = element.style.background;
-  element.style.background = "#ffffff";
-
   try {
-    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+    // Force white background to prevent lab() / oklch() parsing
+    const canvas = await html2canvas(element, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      logging: false,
+      ignoreElements: (el) => {
+        const style = window.getComputedStyle(el);
+        return (
+          style.backgroundImage?.includes("lab(") ||
+          style.color?.includes("lab(") ||
+          style.backgroundImage?.includes("oklch(")
+        );
+      },
+    });
+
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "mm", "a4");
     const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -194,9 +205,6 @@ export default function PaymentSection() {
   } catch (err) {
     console.error("Error generating receipt PDF:", err);
     alert("⚠️ Failed to generate PDF. Please try again.");
-  } finally {
-    // Restore gradient
-    element.style.background = originalBackground;
   }
 };
 
@@ -310,7 +318,7 @@ export default function PaymentSection() {
           </form>
         </div>
       ) : payment.status === "successful" ? (
-        <div ref={receiptRef}>
+        <div ref={receiptRef} style={{ backgroundColor: "#fff", padding: "20px" }}>
           <PaymentReceipt payment={payment} onDownload={handleDownload} />
           <div className="text-center mt-6">
             <button

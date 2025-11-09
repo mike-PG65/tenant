@@ -176,37 +176,42 @@ export default function PaymentSection() {
 
 const handleDownload = async () => {
   if (!receiptRef.current) return;
-  const element = receiptRef.current;
+  const element = receiptRef.current.cloneNode(true);
+
+  // Remove elements that have lab()/oklch() in computed style
+  element.querySelectorAll('*').forEach((el) => {
+    const style = window.getComputedStyle(el);
+    ['color', 'backgroundColor', 'borderColor'].forEach((prop) => {
+      const value = style[prop];
+      if (value?.includes('lab(') || value?.includes('oklch(')) {
+        el.style[prop] = '#000'; // fallback to black text
+      }
+    });
+  });
+
+  document.body.appendChild(element);
 
   try {
-    // Force white background to prevent lab() / oklch() parsing
     const canvas = await html2canvas(element, {
+      backgroundColor: '#ffffff',
       scale: 2,
       useCORS: true,
-      backgroundColor: "#ffffff",
       logging: false,
-      ignoreElements: (el) => {
-        const style = window.getComputedStyle(el);
-        return (
-          style.backgroundImage?.includes("lab(") ||
-          style.color?.includes("lab(") ||
-          style.backgroundImage?.includes("oklch(")
-        );
-      },
     });
-
-    const imgData = canvas.toDataURL("image/png");
-    const pdf = new jsPDF("p", "mm", "a4");
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Rent_Receipt_${payment?.tenantName || "Tenant"}_${payment?.month}.pdf`);
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`Rent_Receipt_${payment?.tenantName || 'Tenant'}_${payment?.month}.pdf`);
   } catch (err) {
-    console.error("Error generating receipt PDF:", err);
-    alert("⚠️ Failed to generate PDF. Please try again.");
+    console.error('Error generating receipt PDF:', err);
+    alert('⚠️ Failed to generate PDF. Please try again.');
+  } finally {
+    document.body.removeChild(element);
   }
 };
+
 
 
 

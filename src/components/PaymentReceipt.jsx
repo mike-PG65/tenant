@@ -8,13 +8,16 @@ export default function PaymentReceipt({ payment, onDownload }) {
 
   // Format month nicely (e.g., "November 2025")
   const formattedMonth = payment.month
-    ? new Date(payment.month + "-01").toLocaleString("en-US", { month: "long", year: "numeric" })
+    ? new Date(payment.month + "-01").toLocaleString("en-US", {
+        month: "long",
+        year: "numeric",
+      })
     : "N/A";
 
   return (
-    <div className="max-w-2xl mx-auto mt-10 bg-gradient-to-b from-white to-gray-50 shadow-2xl rounded-2xl p-10 border border-gray-200 relative overflow-hidden">
+    <div className="max-w-2xl mx-auto mt-10 bg-white shadow-2xl rounded-2xl p-10 border border-gray-200 relative overflow-hidden">
       {/* Watermark */}
-      <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center text-6xl font-bold text-gray-400 rotate-[-30deg]">
+      <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center text-6xl font-bold text-gray-300 rotate-[-30deg]">
         RECEIPT
       </div>
 
@@ -22,7 +25,7 @@ export default function PaymentReceipt({ payment, onDownload }) {
       <div className="flex justify-between items-center mb-8 relative">
         <div>
           <h2 className="text-2xl font-bold text-gray-800">Tenant Rent Receipt</h2>
-          <p className="text-gray-500 text-sm">Official Payment Confirmation</p>
+          <p className="text-gray-600 text-sm">Official Payment Confirmation</p>
         </div>
         <div className="text-right">
           <p className="text-sm text-gray-600">Receipt Date</p>
@@ -42,7 +45,7 @@ export default function PaymentReceipt({ payment, onDownload }) {
         <p className="font-semibold">House:</p>
         <p>{payment.houseName || "N/A"}</p>
 
-        <p className="font-semibold">Payment Month:</p> {/* New */}
+        <p className="font-semibold">Payment Month:</p>
         <p>{formattedMonth}</p>
 
         <p className="font-semibold">Payment Method:</p>

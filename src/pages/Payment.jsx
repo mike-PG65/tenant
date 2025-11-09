@@ -176,52 +176,30 @@ export default function PaymentSection() {
 
  const handleDownload = async () => {
   if (!receiptRef.current) return;
-  
   const element = receiptRef.current;
 
+  // Temporarily remove gradients before export
+  const originalBackground = element.style.background;
+  element.style.background = "#ffffff";
+
   try {
-    // Wait for UI to render
-    await new Promise((resolve) => setTimeout(resolve, 200));
-
-    // Capture the receipt at high resolution
-    const canvas = await html2canvas(element, {
-      scale: 2,         // Higher quality
-      useCORS: true,    // Allow images & external assets
-      logging: false,   // Suppress console logs
-    });
-
+    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
     const imgData = canvas.toDataURL("image/png");
     const pdf = new jsPDF("p", "mm", "a4");
-
     const pdfWidth = pdf.internal.pageSize.getWidth();
     const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    const pageHeight = pdf.internal.pageSize.getHeight();
 
-    let position = 0;
-
-    // If the content fits one page
-    if (pdfHeight <= pageHeight) {
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
-    } else {
-      // Multi-page receipt
-      while (position < pdfHeight) {
-        pdf.addImage(imgData, "PNG", 0, -position, pdfWidth, pdfHeight);
-        position += pageHeight;
-        if (position < pdfHeight) pdf.addPage();
-      }
-    }
-
-    // Dynamic file name
-    const fileName = `Rent_Receipt_${payment?.tenantName || "Tenant"}_${
-      payment?.month || new Date().toISOString().slice(0, 7)
-    }.pdf`;
-
-    pdf.save(fileName);
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`Rent_Receipt_${payment?.tenantName || "Tenant"}_${payment?.month}.pdf`);
   } catch (err) {
     console.error("Error generating receipt PDF:", err);
     alert("⚠️ Failed to generate PDF. Please try again.");
+  } finally {
+    // Restore gradient
+    element.style.background = originalBackground;
   }
 };
+
 
 
 

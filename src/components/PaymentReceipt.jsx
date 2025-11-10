@@ -40,10 +40,10 @@ const PaymentReceipt = forwardRef(({ payment, onDownload }, ref) => {
       {/* Tenant Details */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-3 sm:gap-y-4 text-gray-700 mb-6 text-sm sm:text-base">
         <p className="font-semibold">Tenant Name:</p>
-        <p>{payment.tenantName || "N/A"}</p>
+        <p>{payment.tenantId?.name || "N/A"}</p>
 
         <p className="font-semibold">House:</p>
-        <p>{payment.houseName || "N/A"}</p>
+        <p>{payment.rentalId?.houseId?.houseNo || "N/A"}</p>
 
         <p className="font-semibold">Payment Month:</p>
         <p>{formattedMonth}</p>

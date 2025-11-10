@@ -179,44 +179,39 @@ const handleDownload = async () => {
   if (!receiptRef.current) return;
   const element = receiptRef.current;
 
-  // Clone the main content
+  // Clone and prepare for PDF
   const clone = element.cloneNode(true);
   document.body.appendChild(clone);
   clone.style.position = "fixed";
   clone.style.top = "-9999px";
   clone.style.left = "0";
-  clone.style.width = `${element.offsetWidth}px`;
-  clone.style.padding = "40px";
+  clone.style.width = "800px"; // fixed width to keep layout consistent
   clone.style.boxSizing = "border-box";
-  clone.style.backgroundColor = "#fff"; // page 1 bg
-  clone.style.borderRadius = "12px";
+  clone.style.backgroundColor = "#ffffff";
+  clone.style.overflow = "visible";
 
-  // Split elements: first page vs summary section
-  const summarySection = clone.querySelector(".payment-summary"); // add this class in PaymentReceipt div around summary
-  if (summarySection) {
-    summarySection.style.pageBreakBefore = "always"; // forces it to new PDF page
-  }
+  // Remove absolute watermark to prevent html2canvas issues
+  const watermark = clone.querySelector(".absolute");
+  if (watermark) watermark.remove();
 
-  // Sanitize colors for html2canvas
+  // Sanitize colors (avoid oklch/lab issues)
   const sanitizeColors = (el) => {
-    const all = el.querySelectorAll("*");
-    all.forEach((node) => {
+    el.querySelectorAll("*").forEach((node) => {
       const style = window.getComputedStyle(node);
       if (style.color.includes("oklch") || style.color.includes("lab")) node.style.color = "black";
       if (style.backgroundColor.includes("oklch") || style.backgroundColor.includes("lab"))
-        node.style.backgroundColor = style.backgroundColor.includes("gray") ? "#f3f4f6" : "white";
+        node.style.backgroundColor = style.backgroundColor.includes("gray") ? "#f3f4f6" : "#ffffff";
       if (style.borderColor.includes("oklch") || style.borderColor.includes("lab")) node.style.borderColor = "#ccc";
     });
   };
   sanitizeColors(clone);
 
   try {
-    // Render PDF page by page
     const canvas = await html2canvas(clone, {
       scale: 3,
       useCORS: true,
       backgroundColor: "#ffffff",
-      windowWidth: clone.scrollWidth,
+      logging: true,
     });
 
     const imgData = canvas.toDataURL("image/jpeg", 1.0);
@@ -225,36 +220,35 @@ const handleDownload = async () => {
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
 
-    const imgWidth = pageWidth - 20; // margins
+    // Fit canvas to page width
+    const margin = 10;
+    const imgWidth = pageWidth - 2 * margin;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    // Add the image to PDF
-    pdf.addImage(imgData, "JPEG", 10, 10, imgWidth, imgHeight);
+    pdf.addImage(imgData, "JPEG", margin, 10, imgWidth, imgHeight);
 
-    // Footer for all pages
-    const totalPages = pdf.internal.getNumberOfPages();
-    for (let i = 1; i <= totalPages; i++) {
-      pdf.setPage(i);
-      pdf.setFontSize(9);
-      pdf.setTextColor(120);
-      pdf.text(
-        "© " + new Date().getFullYear() + " Tenant Portal — All rights reserved",
-        pageWidth / 2,
-        pageHeight - 10,
-        { align: "center" }
-      );
-    }
+    // Footer
+    pdf.setFontSize(9);
+    pdf.setTextColor(120);
+    pdf.text(
+      `© ${new Date().getFullYear()} Tenant Portal — All rights reserved`,
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: "center" }
+    );
 
     const date = new Date().toISOString().slice(0, 10);
     const fileName = `Rent_Receipt_${payment?.tenantName || "Tenant"}_${payment?.month || date}.pdf`;
     pdf.save(fileName);
   } catch (err) {
-    console.error("Error generating receipt PDF:", err);
+    console.error("Error generating PDF:", err);
     alert("⚠️ Failed to generate PDF. Please try again.");
   } finally {
     document.body.removeChild(clone);
   }
 };
+
+
 
 
 

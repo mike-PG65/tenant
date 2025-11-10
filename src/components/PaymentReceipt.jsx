@@ -13,17 +13,13 @@ const PaymentReceipt = forwardRef(({ payment, onDownload }, ref) => {
       })
     : "N/A";
 
-  const receiptDate = payment.paymentDate
-    ? new Date(payment.paymentDate).toLocaleDateString()
-    : new Date().toLocaleDateString();
-
   return (
     <div
       ref={ref}
-      className="relative max-w-2xl w-full mx-auto mt-6 sm:mt-10 bg-white rounded-2xl shadow-2xl p-6 sm:p-10 overflow-hidden"
+      className="max-w-2xl w-full mx-auto mt-6 sm:mt-10 bg-white rounded-2xl shadow-2xl p-6 sm:p-10 overflow-hidden"
     >
       {/* Watermark */}
-      <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center text-6xl font-bold text-gray-300 -rotate-30 select-none">
+      <div className="absolute inset-0 opacity-5 pointer-events-none flex items-center justify-center text-6xl font-bold text-gray-300 -rotate-30">
         RECEIPT
       </div>
 
@@ -35,7 +31,7 @@ const PaymentReceipt = forwardRef(({ payment, onDownload }, ref) => {
         </div>
         <div className="mt-3 sm:mt-0 text-gray-700">
           <p className="text-xs sm:text-sm text-gray-600">Receipt Date</p>
-          <p className="font-semibold text-gray-800">{receiptDate}</p>
+          <p className="font-semibold text-gray-800">{new Date(payment.paymentDate).toLocaleDateString()}</p>
         </div>
       </div>
 
@@ -53,7 +49,7 @@ const PaymentReceipt = forwardRef(({ payment, onDownload }, ref) => {
         <p>{formattedMonth}</p>
 
         <p className="font-semibold">Payment Method:</p>
-        <p className="capitalize">{payment.method || "N/A"}</p>
+        <p className="capitalize">{payment.method}</p>
 
         {isMpesa && (
           <>
@@ -70,7 +66,7 @@ const PaymentReceipt = forwardRef(({ payment, onDownload }, ref) => {
         )}
       </div>
 
-      {/* Payment Summary */}
+      {/* Payment Summary - single page */}
       <div className="bg-gray-100 rounded-xl p-6 shadow-inner mb-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-3 border-b border-gray-300 pb-2">
           Payment Summary
@@ -78,7 +74,7 @@ const PaymentReceipt = forwardRef(({ payment, onDownload }, ref) => {
 
         <div className="flex justify-between py-2 text-gray-700">
           <span>Amount Paid:</span>
-          <span className="font-semibold text-gray-900">Ksh {payment.amount?.toLocaleString() || 0}</span>
+          <span className="font-semibold text-gray-900">Ksh {payment.amount.toLocaleString()}</span>
         </div>
 
         <div className="flex justify-between py-2 text-gray-700">
@@ -92,12 +88,12 @@ const PaymentReceipt = forwardRef(({ payment, onDownload }, ref) => {
                 : "text-red-600"
             }`}
           >
-            {payment.status || "N/A"}
+            {payment.status}
           </span>
         </div>
       </div>
 
-      {/* Footer and Download */}
+      {/* Footer */}
       <p className="text-center text-gray-600 italic mb-4 text-sm sm:text-base">
         Thank you for your timely payment!
       </p>
@@ -112,7 +108,7 @@ const PaymentReceipt = forwardRef(({ payment, onDownload }, ref) => {
       </div>
 
       <div className="text-center text-[10px] sm:text-xs text-gray-400">
-        © {new Date().getFullYear()} Tenant Portal — All rights reserved
+        © {new Date().getFullYear()} Gonye Enterprices — All rights reserved
       </div>
     </div>
   );

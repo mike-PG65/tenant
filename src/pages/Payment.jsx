@@ -297,74 +297,75 @@ const handleDownload = async () => {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block font-semibold mb-2 text-gray-700">Payment Method</label>
-              <select
-                className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                required
-              >
-                <option value="">Select Method</option>
-                <option value="cash">Cash</option>
-                <option value="mpesa">Mpesa</option>
-              </select>
-            </div>
+         // Inside your PaymentSection component
 
-            {paymentMethod && (
-              <>
-                <div>
-                  <label className="block font-semibold mb-2 text-gray-700">Select Month</label>
-                  <input
-                    type="month"
-                    className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                    value={month}
-                    onChange={(e) => setMonth(e.target.value)}
-                    required
-                    min={new Date().toISOString().slice(0, 7)}
-                  />
-                </div>
+<form onSubmit={handleSubmit} className="space-y-5">
+  <div>
+    <label className="block font-semibold mb-2 text-gray-700">Payment Method</label>
+    <select
+      className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
+      value={paymentMethod}
+      onChange={(e) => setPaymentMethod(e.target.value)}
+      required
+    >
+      <option value="">Select Method</option>
+      <option value="cash">Cash</option>
+      <option value="mpesa">Mpesa</option>
+    </select>
+  </div>
 
-                <div>
-                  <label className="block font-semibold mb-2 text-gray-700">Amount to Pay</label>
-                  <input
-                    type="number"
-                    placeholder="Enter amount"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                    required
-                    max={remainingBalance}
-                  />
-                </div>
-              </>
-            )}
+  {paymentMethod && (
+    <>
+      <div>
+        <label className="block font-semibold mb-2 text-gray-700">Select Month</label>
+        <input
+          type="month"
+          className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
+          value={month}
+          onChange={(e) => setMonth(e.target.value)}
+          required
+          min={new Date().toISOString().slice(0, 7)}
+        />
+      </div>
 
-            {paymentMethod === "mpesa" && (
-              <div>
-                <label className="block font-semibold mb-2 text-gray-700">Mpesa Phone Number</label>
-                <input
-                  type="tel"
-                  placeholder="07XXXXXXXX"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
-                  className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                  required
-                />
-              </div>
-            )}
+      {/* Display amount automatically from rental */}
+      <div>
+        <label className="block font-semibold mb-2 text-gray-700">Amount to Pay</label>
+        <input
+          type="number"
+          value={rental?.amount || 0}
+          readOnly
+          className="w-full border border-gray-300 p-3 rounded-xl bg-gray-100 cursor-not-allowed"
+        />
+      </div>
+    </>
+  )}
 
-            <button
-              type="submit"
-              disabled={loading || remainingBalance <= 0}
-              className={`w-full py-3 rounded-2xl text-white font-semibold shadow-lg transition-colors ${
-                loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              {loading ? "Processing..." : "Pay Now"}
-            </button>
-          </form>
+  {paymentMethod === "mpesa" && (
+    <div>
+      <label className="block font-semibold mb-2 text-gray-700">Mpesa Phone Number</label>
+      <input
+        type="tel"
+        placeholder="07XXXXXXXX"
+        value={phoneNumber}
+        onChange={(e) => setPhoneNumber(e.target.value)}
+        className="w-full border border-gray-300 p-3 rounded-xl focus:ring-2 focus:ring-blue-400 focus:outline-none"
+        required
+      />
+    </div>
+  )}
+
+  <button
+    type="submit"
+    disabled={loading || remainingBalance <= 0}
+    className={`w-full py-3 rounded-2xl text-white font-semibold shadow-lg transition-colors ${
+      loading ? "bg-gray-400 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+    }`}
+  >
+    {loading ? "Processing..." : "Pay Now"}
+  </button>
+</form>
+
         </div>
       ) : payment.status === "successful" ? (
         <div ref={receiptRef} style={{ backgroundColor: "#fff", padding: "20px" }}>

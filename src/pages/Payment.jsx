@@ -4,6 +4,7 @@ import { io } from "socket.io-client";
 import PaymentReceipt from "../components/PaymentReceipt";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import html2pdf from "html2pdf.js";
 
 export default function PaymentSection() {
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -176,41 +177,90 @@ export default function PaymentSection() {
 
 const handleDownload = async () => {
   if (!receiptRef.current) return;
-  const element = receiptRef.current.cloneNode(true);
+  const element = receiptRef.current;
 
-  // Remove elements that have lab()/oklch() in computed style
-  element.querySelectorAll('*').forEach((el) => {
-    const style = window.getComputedStyle(el);
-    ['color', 'backgroundColor', 'borderColor'].forEach((prop) => {
-      const value = style[prop];
-      if (value?.includes('lab(') || value?.includes('oklch(')) {
-        el.style[prop] = '#000'; // fallback to black text
-      }
+  // Clone the main content
+  const clone = element.cloneNode(true);
+  document.body.appendChild(clone);
+  clone.style.position = "fixed";
+  clone.style.top = "-9999px";
+  clone.style.left = "0";
+  clone.style.width = `${element.offsetWidth}px`;
+  clone.style.padding = "40px";
+  clone.style.boxSizing = "border-box";
+  clone.style.backgroundColor = "#fff"; // page 1 bg
+  clone.style.borderRadius = "12px";
+
+  // Split elements: first page vs summary section
+  const summarySection = clone.querySelector(".payment-summary"); // add this class in PaymentReceipt div around summary
+  if (summarySection) {
+    summarySection.style.pageBreakBefore = "always"; // forces it to new PDF page
+  }
+
+  // Sanitize colors for html2canvas
+  const sanitizeColors = (el) => {
+    const all = el.querySelectorAll("*");
+    all.forEach((node) => {
+      const style = window.getComputedStyle(node);
+      if (style.color.includes("oklch") || style.color.includes("lab")) node.style.color = "black";
+      if (style.backgroundColor.includes("oklch") || style.backgroundColor.includes("lab"))
+        node.style.backgroundColor = style.backgroundColor.includes("gray") ? "#f3f4f6" : "white";
+      if (style.borderColor.includes("oklch") || style.borderColor.includes("lab")) node.style.borderColor = "#ccc";
     });
-  });
-
-  document.body.appendChild(element);
+  };
+  sanitizeColors(clone);
 
   try {
-    const canvas = await html2canvas(element, {
-      backgroundColor: '#ffffff',
-      scale: 2,
+    // Render PDF page by page
+    const canvas = await html2canvas(clone, {
+      scale: 3,
       useCORS: true,
-      logging: false,
+      backgroundColor: "#ffffff",
+      windowWidth: clone.scrollWidth,
     });
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Rent_Receipt_${payment?.tenantName || 'Tenant'}_${payment?.month}.pdf`);
+
+    const imgData = canvas.toDataURL("image/jpeg", 1.0);
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    const imgWidth = pageWidth - 20; // margins
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+    // Add the image to PDF
+    pdf.addImage(imgData, "JPEG", 10, 10, imgWidth, imgHeight);
+
+    // Footer for all pages
+    const totalPages = pdf.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      pdf.setPage(i);
+      pdf.setFontSize(9);
+      pdf.setTextColor(120);
+      pdf.text(
+        "© " + new Date().getFullYear() + " Tenant Portal — All rights reserved",
+        pageWidth / 2,
+        pageHeight - 10,
+        { align: "center" }
+      );
+    }
+
+    const date = new Date().toISOString().slice(0, 10);
+    const fileName = `Rent_Receipt_${payment?.tenantName || "Tenant"}_${payment?.month || date}.pdf`;
+    pdf.save(fileName);
   } catch (err) {
-    console.error('Error generating receipt PDF:', err);
-    alert('⚠️ Failed to generate PDF. Please try again.');
+    console.error("Error generating receipt PDF:", err);
+    alert("⚠️ Failed to generate PDF. Please try again.");
   } finally {
-    document.body.removeChild(element);
+    document.body.removeChild(clone);
   }
 };
+
+
+
+
+
+
 
 
 
@@ -323,7 +373,7 @@ const handleDownload = async () => {
           </form>
         </div>
       ) : payment.status === "successful" ? (
-        <div ref={receiptRef} style={{ backgroundColor: '#ffffff', color: '#000000' }}>
+        <div ref={receiptRef} style={{ backgroundColor: "#fff", padding: "20px" }}>
           <PaymentReceipt payment={payment} onDownload={handleDownload} />
           <div className="text-center mt-6">
             <button
@@ -346,4 +396,3 @@ const handleDownload = async () => {
     </div>
   );
 }
-``
